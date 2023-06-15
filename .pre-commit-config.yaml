@@ -1,0 +1,23 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: pytest
+        name: pytest
+        entry: pytest tests
+        language: system
+        types: [python]
+    -   id: autopep8
+        name: autopep8
+        entry: autopep8 -r -i fsaa
+        language: system
+        types: [python]
+-   repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+    -   id: isort
+        name: isort (python)
+-   repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+    -   id: flake8
+        entry: flake8 --ignore=F403,F405,W503,W504
