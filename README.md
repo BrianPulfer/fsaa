@@ -98,7 +98,7 @@ The code is distributed according to the **Attribution-NonCommercial 4.0 Interna
 ___
 
 ## Citation
-If you used this library as part of your work, please cite the repository with an URL to this webpage.
+If you used this library as part of your work, please cite the repository with the following URL: [https://github.com/BrianPulfer/fsaa](https://github.com/BrianPulfer/fsaa)
 ___
 
 ## Acknowledgements
