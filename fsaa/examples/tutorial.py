@@ -1,86 +1,62 @@
-import numpy as np
+import requests as r
 import torch
-from torch.utils.data import DataLoader
-from torchvision.datasets import CIFAR10
+from PIL import Image
 from torchvision.models.resnet import resnet18
-from torchvision.transforms import Compose, Normalize, ToTensor
-from tqdm.auto import tqdm
+from torchvision.transforms import ToTensor
 
-from fsaa.attack import attack
+from fsaa.attack import TransformAndModelWrapper, attack
+from fsaa.masks.jnd import JNDMask
+from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 from fsaa.utils import get_initializer, get_loss, get_updater
 
+# Reproducibility
+torch.manual_seed(0)
 
-def main():
-    # Setting reproducibility
-    torch.manual_seed(0)
+# Device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Getting device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Model to be attacked
-    model = resnet18(pretrained=True).to(device).eval()
-
-    # Getting data
-    transform = Compose([
-        ToTensor(),
-        Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-
-    dataset = CIFAR10(
-        root="./data/cifar10",
-        transform=transform,
-        download=True,
-        train=False
+# Model to be attacked
+# Note: we backprop all the way before pre-processing!
+model = resnet18(weights="ResNet18_Weights.IMAGENET1K_V1")
+model = TransformAndModelWrapper(
+    model,
+    Normalize(
+        mean=IMAGENET_MEAN,
+        std=IMAGENET_STD
     )
+).to(device).eval()
 
-    loader = DataLoader(dataset, batch_size=16, shuffle=False)
+# Batch of data
+# No pre-processing is needed (just ToTensor)
+url = "http://images.cocodataset.org/val2017/000000039769.jpg"
+image = Image.open(r.get(url, stream=True).raw)
+batch = ToTensor()(image).unsqueeze(0).to(device)
 
-    # Attack parameters: you are flexible to pick different combinations!
-    lr = 0.01
-    initializer = get_initializer("RandomInitializer", lr)
-    updater = get_updater("PGDUpdater", lr)
-    img_loss = get_loss("MeanSquaredErrorLoss").to(device)
-    feat_loss = get_loss("MeanSquaredErrorLoss").to(device)
+# Label for the attack
+features = model(batch).detach()
 
-    # Attacking batches and storing stats
-    images_mses = []
-    features_mses = []
-    for batch in tqdm(loader):
-        imgs, _ = batch
-        imgs = imgs.to(device)
-        features = model(imgs)
+# Attacking the batch
+adv_batch = attack(
+    model,
+    batch,
+    labels=features,
+    steps=100,
+    initializer=get_initializer("Random", 1 / 255),
+    updater=get_updater("PGD", lr=2 / 255),
+    image_loss=get_loss("MSE"),
+    feature_loss=get_loss("MSE"),
+    ilw=1,  # Minimize MSE in image space
+    flw=-1,  # Maximize MSE in feature space
+    perceptual_mask=JNDMask(),
+    max_img_loss=0.001,  # Maximum MSE in image space
+    device=device,
+)
 
-        # Attacking the batch such that features are as
-        # different as possible in terms of cosine similarity
-        # but close in LPIPS distance to the original images
-        adv_batch = attack(
-            model,
-            imgs,
-            labels=features,
-            steps=1,
-            initializer=initializer,
-            updater=updater,
-            image_loss=img_loss,
-            feature_loss=feat_loss,
-            ilw=1,  # Minimize difference in images
-            flw=-1,  # Maximize difference in features
-            device=device,
-        )
+# Comparing image and feature distortions
+with torch.no_grad():
+    adv_features = model(adv_batch)
 
-        # Storing stats
-        features_mses.extend(
-            ((features - model(adv_batch)) ** 2)
-            .mean(dim=1).detach().cpu().numpy()
-        )
-        images_mses.extend(
-            ((imgs - adv_batch) ** 2)
-            .mean(dim=(1, 2, 3)).detach().cpu().numpy()
-        )
-
-    # Printing stats
-    print(f"Mean MSE in feature space: {np.mean(features_mses):.4f}")
-    print(f"Mean MSE in image space: {np.mean(images_mses):.4f}")
-
-
-if __name__ == "__main__":
-    main()
+mse_f = (features - adv_features).pow(2).mean().item()
+mse_i = (batch - adv_batch).pow(2).mean().item()
+print(f"MSE in feature space: {mse_f:.4f}")
+print(f"MSE in image space: {mse_i:.4f}")

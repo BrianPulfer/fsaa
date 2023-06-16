@@ -15,45 +15,38 @@ from fsaa.updaters.pgd import PGDUpdater
 from fsaa.updaters.random import RandomUpdater
 
 INITIALIZERS = {
-    "RandomInitializer": RandomInitializer,
-    "RandomSignInitializer": RandomSignInitializer,
+    "Random": RandomInitializer,
+    "RandomSign": RandomSignInitializer,
 }
 
 UPDATERS = {
-    "FGSMUpdater": FGSMUpdater,
-    "LangevinUpdater": LangevinUpdater,
-    "PGDUpdater": PGDUpdater,
-    "RandomUpdater": RandomUpdater,
+    "FGSM": FGSMUpdater,
+    "Langevin": LangevinUpdater,
+    "PGD": PGDUpdater,
+    "Random": RandomUpdater,
 }
 
 LOSSES = {
-    "CosSimLoss": CosSimLoss,
-    "MeanSquaredErrorLoss": MeanSquaredErrorLoss,
-    "LPIPSAlexLoss": LPIPSAlexLoss,
-    "LPIPSVGGLoss": LPIPSVGGLoss,
+    "CosSim": CosSimLoss,
+    "MSE": MeanSquaredErrorLoss,
+    "LPIPSAlex": LPIPSAlexLoss,
+    "LPIPSVGG": LPIPSVGGLoss,
 }
 
 MASKS = {
-    "JNDMask": JNDMask,
-    "CustomMask": CustomMask,
+    "JND": JNDMask,
+    "Custom": CustomMask,
 }
 
 
-def get_initializer(
-        name: str,
-        alpha: float,
-        **kwargs) -> PerturbationInitializer:
+def get_initializer(name: str, lr: float, **kwargs) -> PerturbationInitializer:
     """Returns the initializer used for the attack."""
-    return INITIALIZERS[name](alpha, **kwargs)
+    return INITIALIZERS[name](lr, **kwargs)
 
 
-def get_updater(
-        name: str,
-        alpha: float,
-        **kwargs
-) -> PerturbationUpdater:
+def get_updater(name: str, lr: float, **kwargs) -> PerturbationUpdater:
     """Returns the updater used for the attack."""
-    return UPDATERS[name](alpha, **kwargs)
+    return UPDATERS[name](lr, **kwargs)
 
 
 def get_loss(name: str, **kwargs) -> Module:

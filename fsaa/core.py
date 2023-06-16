@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 
+import torch.nn as nn
 from torch import Tensor
 
 
 class PerturbationInitializer(ABC):
-    def __init__(self, alpha, *args, **kwargs):
+    def __init__(self, lr, *args, **kwargs):
         super(PerturbationInitializer, self).__init__(*args, **kwargs)
-        self.alpha = alpha
+        self.lr = lr
 
     def __call__(self, x: Tensor, *args, **kwargs) -> Tensor:
         return self.initialize(x, *args, **kwargs)
@@ -17,9 +18,9 @@ class PerturbationInitializer(ABC):
 
 
 class PerturbationUpdater(ABC):
-    def __init__(self, alpha, *args, **kwargs):
+    def __init__(self, lr, *args, **kwargs):
         super(PerturbationUpdater, self).__init__()
-        self.alpha = alpha
+        self.lr = lr
 
     def __call__(
         self,
@@ -29,7 +30,7 @@ class PerturbationUpdater(ABC):
         steps: int,
         loss: Tensor,
         *args,
-        **kwargs
+        **kwargs,
     ) -> Tensor:
         return self.update(x, grad, step, steps, loss, *args, **kwargs)
 
@@ -52,6 +53,24 @@ class PerceptualMask(ABC):
 
     @abstractmethod
     def mask(
+        self,
+        x: Tensor,
+    ) -> Tensor:
+        raise NotImplementedError
+
+
+class DifferentiableTransform(ABC, nn.Module):
+    def __init__(self, *args, **kwargs):
+        super(DifferentiableTransform, self).__init__()
+
+    def __call__(
+        self,
+        x: Tensor,
+    ) -> Tensor:
+        return self.process(x)
+
+    @abstractmethod
+    def process(
         self,
         x: Tensor,
     ) -> Tensor:

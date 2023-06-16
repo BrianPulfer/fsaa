@@ -7,8 +7,8 @@ class RandomUpdater(PerturbationUpdater):
     """Random perturbation update.
     It servers as a baseline for other attacks."""
 
-    def __init__(self, alpha: float = 2 / 255, *args, **kwargs):
-        super(RandomUpdater, self).__init__(alpha, *args, **kwargs)
+    def __init__(self, lr: float = 2 / 255, *args, **kwargs):
+        super(RandomUpdater, self).__init__(lr, *args, **kwargs)
 
     def update(
         self,
@@ -18,6 +18,6 @@ class RandomUpdater(PerturbationUpdater):
         steps: int,
         loss: torch.Tensor,
         *args,
-        **kwargs
+        **kwargs,
     ) -> torch.Tensor:
-        return x + self.alpha * torch.randn_like(x)
+        return x - self.lr * torch.randn_like(x)

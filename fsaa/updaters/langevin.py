@@ -7,12 +7,12 @@ class LangevinUpdater(PerturbationUpdater):
     """Langevin perturbation update."""
 
     def __init__(self,
-                 alpha: float = 2 / 255,
+                 lr: float = 2 / 255,
                  eta: float = None,
                  *args,
                  **kwargs):
-        super(LangevinUpdater, self).__init__(alpha, *args, **kwargs)
-        self.eta = eta if eta is not None else (2 * self.alpha) ** 0.5
+        super(LangevinUpdater, self).__init__(lr, *args, **kwargs)
+        self.eta = eta if eta is not None else (2 * self.lr) ** 0.5
 
     def update(
         self,
@@ -23,4 +23,4 @@ class LangevinUpdater(PerturbationUpdater):
         loss: torch.Tensor,
     ) -> torch.Tensor:
         grad_log_loss = grad / loss
-        return x + self.alpha * grad_log_loss + self.eta * torch.randn_like(x)
+        return x - self.lr * grad_log_loss + self.eta * torch.randn_like(x)

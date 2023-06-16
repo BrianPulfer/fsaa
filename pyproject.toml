@@ -1,0 +1,22 @@
+# Hatchling build instructions
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Project metadata
+[project]
+name = "fsaa"
+version = "0.0.1"
+authors = [{ name="Brian Pulfer", email="brianpulfer95@gmail.com" }]
+description = "A simple library for adversarial attacks in feature space."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/BrianPulfer/fsaa"
+"Bug Tracker" = "https://github.com/BrianPulfer/fsaa/issues"

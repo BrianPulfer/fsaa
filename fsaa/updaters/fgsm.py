@@ -4,8 +4,8 @@ from fsaa.core import PerturbationUpdater
 
 
 class FGSMUpdater(PerturbationUpdater):
-    def __init__(self, alpha: float = 2 / 255, *args, **kwargs):
-        super(FGSMUpdater, self).__init__(alpha, *args, **kwargs)
+    def __init__(self, lr: float = 2 / 255, *args, **kwargs):
+        super(FGSMUpdater, self).__init__(lr, *args, **kwargs)
 
     def update(
         self,
@@ -15,4 +15,4 @@ class FGSMUpdater(PerturbationUpdater):
         steps: int,
         loss: torch.Tensor,
     ) -> torch.Tensor:
-        return x + self.alpha * grad.sign()
+        return x - self.lr * grad.sign()

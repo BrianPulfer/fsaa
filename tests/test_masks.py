@@ -8,7 +8,7 @@ from fsaa.utils import MASKS, get_mask
 
 @pytest.fixture
 def image():
-    url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
+    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
     image = Image.open(requests.get(url, stream=True).raw)
     return ToTensor()(image).unsqueeze(0)
 
