@@ -1,3 +1,8 @@
+<h1 align="center">
+  <img width="auto" height="150px" src="assets/logo.png" />
+</h1>
+
+
 # FSAA: Feature Space Adversarial Attacks
 FSAA allows to create adversarial examples that corrupt the features of the victim models. Various attacks are possible, by altering initialization and update strategies, losses and perceptual masks.
 FSAA is written in Python and is based on PyTorch.
