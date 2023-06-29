@@ -17,13 +17,14 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "accelerate",
+    "lpips",
     "numpy",
-    "scipy",
-    "scikit-learn",
-    "matplotlib",
     "torch",
     "torchvision",
-    "tqdm"
+    "tqdm",
+    "transformers",
+    "wget"
 ]
 
 [project.urls]
