@@ -16,6 +16,15 @@ classifiers = [
     "License :: Other/Proprietary License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "matplotlib",
+    "torch",
+    "torchvision",
+    "tqdm"
+]
 
 [project.urls]
 "Homepage" = "https://github.com/BrianPulfer/fsaa"
