@@ -24,7 +24,8 @@ dependencies = [
     "torchvision",
     "tqdm",
     "transformers",
-    "wget"
+    "wget",
+    "xformers"
 ]
 
 [project.urls]
