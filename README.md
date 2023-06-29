@@ -109,7 +109,18 @@ The code is distributed according to the **Attribution-NonCommercial 4.0 Interna
 ___
 
 ## Citation
-If you used this library as part of your work, please cite the repository with the following URL: [https://github.com/BrianPulfer/fsaa](https://github.com/BrianPulfer/fsaa)
+If you used this library as part of your work, please cite the repository as follows:
+
+```
+@software{Pulfer_FSAA_2023,
+author = {Pulfer, Brian},
+month = jun,
+title = {{FSAA}},
+url = {https://github.com/BrianPulfer/fsaa},
+version = {0.0.3},
+year = {2023}
+}
+```
 ___
 
 ## Acknowledgements
