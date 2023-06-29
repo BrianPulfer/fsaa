@@ -88,6 +88,12 @@ Which results in an **image MSE of 0.001**, a **feature MSE of 91.7**, and the f
 
 </center>
 
+The library also comes with support for pre-trained SSL models from huggingface and other repositories:
+```python
+from fsaa.utils import get_model, SUPPORTED_MODELS
+
+model = get_model("microsoft/beit-base-patch16-224").eval().to(device)
+```
 ___
 
 ## Contributing

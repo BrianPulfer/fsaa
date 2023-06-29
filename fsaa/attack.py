@@ -89,7 +89,8 @@ def attack(
     # Performing attack
     best_loss = float("inf")
     best_adv = x_adv
-    bar = range(steps) if not pbar else tqdm(range(steps), desc="Attack")
+    bar = range(steps) if not pbar else tqdm(
+        range(steps), desc="Attack", leave=False)
     for step in bar:
         # Getting feature representation
         x_adv.requires_grad = True

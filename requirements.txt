@@ -6,3 +6,5 @@ pytest
 torch
 torchvision
 tqdm
+transformers
+wget
