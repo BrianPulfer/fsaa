@@ -1,8 +1,6 @@
 from warnings import warn
 
-import torch
 from torch import Tensor
-
 from torchvision.transforms import Normalize as TorchNormalize
 
 from fsaa.core import DifferentiableTransform
@@ -33,10 +31,7 @@ class Normalize(DifferentiableTransform):
             std = IMAGENET_STD
             warn("No std provided for Normalization: using ImageNet std.")
 
-        self.register_buffer("norm_mean", mean)
-        self.register_buffer("norm_std", std)
-        self.transform = TorchNormalize(mean, std)
+        self.transform = TorchNormalize(mean=mean, std=std)
 
     def process(self, x: Tensor) -> Tensor:
-        self.transform = self.transform.to(x.device)
         return self.transform(x)
