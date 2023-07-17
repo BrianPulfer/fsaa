@@ -23,7 +23,7 @@ SUPPORTED_DEIT_MODELS = [
 
 SUPPORTED_DINO_MODELS = [
     "facebook/dino-vits8",
-    "facebook/dino-vitb16",
+    "facebook/dino-vits16",
     "facebook/dino-vitb8",
     "facebook/dino-vitb16",
 ]
