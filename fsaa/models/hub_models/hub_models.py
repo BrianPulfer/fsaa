@@ -4,6 +4,10 @@ from torch.nn import Module
 from fsaa.attack import TransformAndModelWrapper
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 
+SUPPORTED_BARLOWTWINS_MODELS = [
+    "barlowtwins_resnet50",
+]
+
 SUPPORTED_DINOV2_MODELS = [
     "dinov2_vits14",
     "dinov2_vitb14",
@@ -18,6 +22,7 @@ SUPPORTED_VICREG_MODELS = [
 ]
 
 SUPPORTED_HUB_MODELS = (
+    SUPPORTED_BARLOWTWINS_MODELS +
     SUPPORTED_DINOV2_MODELS +
     SUPPORTED_VICREG_MODELS
 )
@@ -33,6 +38,11 @@ class HubModel(Module):
                 f"Model '{model_name}' is not supported. \
                 Pick one of {SUPPORTED_DINOV2_MODELS}"
             )
+
+        if model_name in SUPPORTED_BARLOWTWINS_MODELS:
+            hub_model = torch.hub.load("facebookresearch/barlowtwins:main",
+                                       model_name.split("_")[1],
+                                       verbose=False)
 
         if model_name in SUPPORTED_DINOV2_MODELS:
             hub_model = torch.hub.load("facebookresearch/dinov2",
