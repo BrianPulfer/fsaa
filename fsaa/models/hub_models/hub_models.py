@@ -15,6 +15,13 @@ SUPPORTED_DINOV2_MODELS = [
     "dinov2_vitg14",
 ]
 
+SUPPORTED_SWAV_MODELS = [
+    "swav_resnet50",
+    "swav_resnet50w2",
+    "swav_resnet50w4",
+    "swav_resnet50w5",
+]
+
 SUPPORTED_VICREG_MODELS = [
     "vicreg_resnet50",
     "vicreg_resnet50x2",
@@ -24,6 +31,7 @@ SUPPORTED_VICREG_MODELS = [
 SUPPORTED_HUB_MODELS = (
     SUPPORTED_BARLOWTWINS_MODELS +
     SUPPORTED_DINOV2_MODELS +
+    SUPPORTED_SWAV_MODELS +
     SUPPORTED_VICREG_MODELS
 )
 
@@ -46,7 +54,13 @@ class HubModel(Module):
 
         if model_name in SUPPORTED_DINOV2_MODELS:
             hub_model = torch.hub.load("facebookresearch/dinov2",
-                                       model_name, verbose=False)
+                                       model_name,
+                                       verbose=False)
+
+        if model_name in SUPPORTED_SWAV_MODELS:
+            hub_model = torch.hub.load("facebookresearch/swav:main",
+                                       model_name.split("_")[1],
+                                       verbose=False)
 
         if model_name in SUPPORTED_VICREG_MODELS:
             hub_model = torch.hub.load('facebookresearch/vicreg:main',
