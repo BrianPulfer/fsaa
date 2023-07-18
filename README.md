@@ -114,10 +114,10 @@ If you used this library as part of your work, please cite the repository as fol
 ```
 @software{Pulfer_FSAA_2023,
 author = {Pulfer, Brian},
-month = jun,
+month = jul,
 title = {{FSAA}},
 url = {https://github.com/BrianPulfer/fsaa},
-version = {0.0.4},
+version = {0.0.6},
 year = {2023}
 }
 ```
