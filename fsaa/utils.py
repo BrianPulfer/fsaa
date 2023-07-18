@@ -10,8 +10,8 @@ from fsaa.losses.mse_loss import MeanSquaredErrorLoss
 from fsaa.masks.custom import CustomMask
 from fsaa.masks.jnd import JNDMask
 from fsaa.masks.nomask import NoMask
-from fsaa.models.dinov2.dinov2 import SUPPORTED_DINOV2_MODELS, DinoV2Model
 from fsaa.models.hf_models.hf_models import SUPPORTED_HF_MODELS, HFModel
+from fsaa.models.hub_models.hub_models import SUPPORTED_HUB_MODELS, HubModel
 from fsaa.models.ibot.ibot import SUPPORTED_IBOT_MODELS, iBOTModel
 from fsaa.updaters.fgsm import FGSMUpdater
 from fsaa.updaters.langevin import LangevinUpdater
@@ -43,8 +43,11 @@ MASKS = {
     "NoMask": NoMask
 }
 
-SUPPORTED_MODELS = SUPPORTED_DINOV2_MODELS + \
-    SUPPORTED_HF_MODELS + SUPPORTED_IBOT_MODELS
+SUPPORTED_MODELS = (
+    SUPPORTED_HUB_MODELS +
+    SUPPORTED_HF_MODELS +
+    SUPPORTED_IBOT_MODELS
+)
 
 
 def get_initializer(name: str, lr: float, **kwargs) -> PerturbationInitializer:
@@ -75,8 +78,8 @@ def get_model(model_name: str) -> Module:
                 Pick one of {SUPPORTED_MODELS}"
         )
 
-    if model_name in SUPPORTED_DINOV2_MODELS:
-        return DinoV2Model(model_name)
+    if model_name in SUPPORTED_HUB_MODELS:
+        return HubModel(model_name)
 
     if model_name in SUPPORTED_HF_MODELS:
         return HFModel(model_name)
