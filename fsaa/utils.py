@@ -10,8 +10,8 @@ from fsaa.losses.mse_loss import MeanSquaredErrorLoss
 from fsaa.masks.custom import CustomMask
 from fsaa.masks.jnd import JNDMask
 from fsaa.masks.nomask import NoMask
-from fsaa.models.hf_models.hf_models import SUPPORTED_HF_MODELS, HFModel
-from fsaa.models.hub_models.hub_models import SUPPORTED_HUB_MODELS, HubModel
+from fsaa.models.hf.hf_models import SUPPORTED_HF_MODELS, HFModel
+from fsaa.models.hub.hub_models import SUPPORTED_HUB_MODELS, HubModel
 from fsaa.models.ibot.ibot import SUPPORTED_IBOT_MODELS, iBOTModel
 from fsaa.updaters.fgsm import FGSMUpdater
 from fsaa.updaters.langevin import LangevinUpdater

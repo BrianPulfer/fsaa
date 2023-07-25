@@ -7,7 +7,7 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 from transformers import AutoImageProcessor
 
-from fsaa.models.hf_models.hf_models import SUPPORTED_HF_MODELS
+from fsaa.models.hf.hf_models import SUPPORTED_HF_MODELS
 from fsaa.utils import SUPPORTED_MODELS, get_model
 
 
