@@ -12,15 +12,6 @@ SUPPORTED_BEIT_MODELS = [
     "microsoft/beit-base-patch16-224-pt22k-ft22k",
 ]
 
-SUPPORTED_DEIT_MODELS = [
-    "facebook/deit-base-distilled-patch16-224",
-    "facebook/deit-base-patch16-224",
-    "facebook/deit-small-distilled-patch16-224",
-    "facebook/deit-small-patch16-224",
-    "facebook/deit-tiny-distilled-patch16-224",
-    "facebook/deit-tiny-patch16-224",
-]
-
 SUPPORTED_DINO_MODELS = [
     "facebook/dino-vits8",
     "facebook/dino-vits16",
@@ -42,7 +33,6 @@ SUPPORTED_MSN_MODELS = [
 
 SUPPORTED_HF_MODELS = (
     SUPPORTED_BEIT_MODELS
-    + SUPPORTED_DEIT_MODELS
     + SUPPORTED_DINO_MODELS
     + SUPPORTED_MAE_MODELS
     + SUPPORTED_MSN_MODELS
@@ -76,12 +66,6 @@ class HFModel(Module):
 
         if model_name in SUPPORTED_BEIT_MODELS:
             mean, std = HALF_NORMALIZATION_MEAN, HALF_NORMALIZATION_STD
-
-        if model_name in SUPPORTED_DEIT_MODELS:
-            if "distilled" in model_name:
-                mean, std = IMAGENET_MEAN, IMAGENET_STD
-            else:
-                mean, std = HALF_NORMALIZATION_MEAN, HALF_NORMALIZATION_STD
 
         if (
             model_name in SUPPORTED_DINO_MODELS

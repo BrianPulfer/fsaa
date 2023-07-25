@@ -67,6 +67,10 @@ class HubModel(Module):
                                        model_name.split("_")[1],
                                        verbose=False)
 
+        # Removing classification head if any
+        if hasattr(hub_model, "fc"):
+            hub_model.fc = torch.nn.Identity()
+
         self.model = TransformAndModelWrapper(
             hub_model,
             transform=Normalize(IMAGENET_MEAN, IMAGENET_STD)
