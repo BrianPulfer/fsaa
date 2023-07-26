@@ -7,15 +7,12 @@ from fsaa.transforms.normalize import (HALF_NORMALIZATION_MEAN,
                                        IMAGENET_STD, Normalize)
 
 SUPPORTED_BEIT_MODELS = [
-    "microsoft/beit-base-patch16-224",
     "microsoft/beit-base-patch16-224-pt22k",
-    "microsoft/beit-base-patch16-224-pt22k-ft22k",
+    "microsoft/beit-large-patch16-224-pt22k"
 ]
 
 SUPPORTED_DINO_MODELS = [
-    "facebook/dino-vits8",
     "facebook/dino-vits16",
-    "facebook/dino-vitb8",
     "facebook/dino-vitb16",
 ]
 
@@ -66,12 +63,7 @@ class HFModel(Module):
 
         if model_name in SUPPORTED_BEIT_MODELS:
             mean, std = HALF_NORMALIZATION_MEAN, HALF_NORMALIZATION_STD
-
-        if (
-            model_name in SUPPORTED_DINO_MODELS
-            or model_name in SUPPORTED_MAE_MODELS
-            or model_name in SUPPORTED_MSN_MODELS
-        ):
+        else:
             mean, std = IMAGENET_MEAN, IMAGENET_STD
 
         self.model = TransformAndModelWrapper(

@@ -6,22 +6,16 @@ import torch.nn as nn
 import wget
 
 from fsaa.attack import TransformAndModelWrapper
-from fsaa.models.ibot.vits import vit_base, vit_large, vit_small
+from fsaa.models.ibot.vits import vit_base, vit_large
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 
 SUPPORTED_IBOT_MODELS = [
-    "ibot_vits_16",
-    "ibot_vitb_16",
     "ibot_vitb_16_pt22k",
-    "ibot_vitl_16",
-    "ibot_vitl_16_pt22k",
+    "ibot_vitl_16_pt22k"
 ]
 
 NAMES_TO_MODELS = {
-    "ibot_vits_16": vit_small,
-    "ibot_vitb_16": vit_base,
     "ibot_vitb_16_pt22k": lambda: vit_base(masked_im_modeling=True),
-    "ibot_vitl_16": vit_large,
     "ibot_vitl_16_pt22k": lambda: vit_large(masked_im_modeling=True)
 }
 

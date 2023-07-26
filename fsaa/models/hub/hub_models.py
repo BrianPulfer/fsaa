@@ -44,7 +44,7 @@ class HubModel(Module):
         if model_name not in SUPPORTED_HUB_MODELS:
             raise ValueError(
                 f"Model '{model_name}' is not supported. \
-                Pick one of {SUPPORTED_DINOV2_MODELS}"
+                Pick one of {SUPPORTED_HUB_MODELS}"
             )
 
         if model_name in SUPPORTED_BARLOWTWINS_MODELS:
