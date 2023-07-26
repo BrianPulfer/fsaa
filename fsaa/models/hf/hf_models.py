@@ -2,8 +2,8 @@ from torch.nn import Module
 from transformers import AutoModel, logging
 
 from fsaa.attack import TransformAndModelWrapper
-from fsaa.transforms.normalize import (HALF_NORMALIZATION_MEAN,
-                                       HALF_NORMALIZATION_STD, IMAGENET_MEAN,
+from fsaa.transforms.normalize import (IMAGENET_INCEPTION_MEAN,
+                                       IMAGENET_INCEPTION_STD, IMAGENET_MEAN,
                                        IMAGENET_STD, Normalize)
 
 SUPPORTED_BEIT_MODELS = [
@@ -62,7 +62,7 @@ class HFModel(Module):
         hf_model = name_to_model(model_name)
 
         if model_name in SUPPORTED_BEIT_MODELS:
-            mean, std = HALF_NORMALIZATION_MEAN, HALF_NORMALIZATION_STD
+            mean, std = IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
         else:
             mean, std = IMAGENET_MEAN, IMAGENET_STD
 

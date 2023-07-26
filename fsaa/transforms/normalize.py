@@ -5,8 +5,8 @@ from torchvision.transforms import Normalize as TorchNormalize
 
 from fsaa.core import DifferentiableTransform
 
-HALF_NORMALIZATION_MEAN = [0.5, 0.5, 0.5]
-HALF_NORMALIZATION_STD = [0.5, 0.5, 0.5]
+IMAGENET_INCEPTION_MEAN = [0.5, 0.5, 0.5]
+IMAGENET_INCEPTION_STD = [0.5, 0.5, 0.5]
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
