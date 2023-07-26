@@ -1,4 +1,5 @@
 accelerate
+gdown
 lpips
 numpy
 pre-commit

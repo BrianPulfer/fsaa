@@ -10,6 +10,7 @@ from fsaa.losses.mse_loss import MeanSquaredErrorLoss
 from fsaa.masks.custom import CustomMask
 from fsaa.masks.jnd import JNDMask
 from fsaa.masks.nomask import NoMask
+from fsaa.models.cae.cae import SUPPORTED_CAE_MODELS, CAEModel
 from fsaa.models.hf.hf_models import SUPPORTED_HF_MODELS, HFModel
 from fsaa.models.hub.hub_models import SUPPORTED_HUB_MODELS, HubModel
 from fsaa.models.ibot.ibot import SUPPORTED_IBOT_MODELS, iBOTModel
@@ -44,6 +45,7 @@ MASKS = {
 }
 
 SUPPORTED_MODELS = (
+    SUPPORTED_CAE_MODELS +
     SUPPORTED_HUB_MODELS +
     SUPPORTED_HF_MODELS +
     SUPPORTED_IBOT_MODELS
@@ -77,6 +79,9 @@ def get_model(model_name: str) -> Module:
             f"Model '{model_name}' is not supported. \
                 Pick one of {SUPPORTED_MODELS}"
         )
+
+    if model_name in SUPPORTED_CAE_MODELS:
+        return CAEModel(model_name)
 
     if model_name in SUPPORTED_HUB_MODELS:
         return HubModel(model_name)

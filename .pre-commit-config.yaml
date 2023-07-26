@@ -15,7 +15,7 @@ repos:
     rev: 6.0.0
     hooks:
     -   id: flake8
-        entry: flake8 --ignore=F403,F405,W503,W504
+        entry: flake8 --ignore=E501,F403,F405,W503,W504
 -   repo: local
     hooks:
     -   id: pytest
