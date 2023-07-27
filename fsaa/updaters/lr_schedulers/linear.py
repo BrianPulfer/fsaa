@@ -8,5 +8,5 @@ class LinearScheduler(Scheduler):
         self.target_lr = kwargs.get("target_lr", 0)
 
     def get_step_lr(self, step: int, steps: int, *args, **kwargs) -> float:
-        progress = (steps - step) - steps
+        progress = (steps - step) / steps
         return (self.base_lr - self.target_lr) * progress + self.target_lr
