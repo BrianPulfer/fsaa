@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # Project metadata
 [project]
 name = "fsaa"
-version = "0.0.8"
+version = "0.0.9"
 authors = [{ name="Brian Pulfer", email="brianpulfer95@gmail.com" }]
 description = "A simple library for adversarial attacks in feature space."
 readme = "README.md"
