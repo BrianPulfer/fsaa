@@ -2,7 +2,7 @@ import pytest
 import torch
 from accelerate import Accelerator
 
-from fsaa.utils import UPDATERS
+from fsaa.utils import UPDATERS, SCHEDULERS
 
 
 @pytest.fixture
@@ -21,8 +21,10 @@ def test_updaters(data):
     """Tests that the all initializers return a perturbation"""
     x = data
     grad = torch.randn_like(x)
-
-    for updater in UPDATERS.values():
-        update = updater()(x, grad, step=0, steps=10, loss=1.0)
-        assert update.shape == x.shape
-        assert update.device == x.device
+    
+    for sch_fn in SCHEDULERS.values():
+        scheduler = sch_fn(fn=lambda x: 2.71828 ** (-5*x))
+        for updater in UPDATERS.values():
+            update = updater(scheduler=scheduler)(x, grad, step=0, steps=10, loss=1.0)
+            assert update.shape == x.shape
+            assert update.device == x.device

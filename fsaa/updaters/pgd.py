@@ -1,22 +1,23 @@
 import torch
 
-from fsaa.core import PerturbationUpdater
+from fsaa.core import PerturbationUpdater, Scheduler
 
 
 class PGDUpdater(PerturbationUpdater):
-    def __init__(self, lr: float = 2 / 255, *args, **kwargs):
-        super(PGDUpdater, self).__init__(lr, *args, **kwargs)
+    def __init__(self, lr: float = 2 / 255, scheduler: Scheduler=None, *args, **kwargs):
+        super(PGDUpdater, self).__init__(lr, scheduler, *args, **kwargs)
         self.epsilon = kwargs.get("epsilon", None)
 
     def update(
         self,
         x: torch.Tensor,
         grad: torch.Tensor,
+        lr: float,
         step: int,
         steps: int,
         loss: torch.Tensor,
     ) -> torch.Tensor:
-        x_adv = x - self.lr * grad.sign()
+        x_adv = x - lr * grad.sign()
 
         if self.epsilon is None:
             return x_adv
