@@ -62,8 +62,8 @@ def get_initializer(name: str, lr: float, **kwargs) -> PerturbationInitializer:
     return INITIALIZERS[name](lr, **kwargs)
 
 
-def get_scheduler(name: str, lr: float, **kwargs) -> PerturbationUpdater:
-    return SCHEDULERS[name](lr, **kwargs)
+def get_scheduler(name: str, base_lr: float, **kwargs) -> PerturbationUpdater:
+    return SCHEDULERS[name](base_lr, **kwargs)
 
 
 def get_updater(name: str, lr: float, **kwargs) -> PerturbationUpdater:
