@@ -4,7 +4,11 @@ from fsaa.core import PerturbationUpdater, Scheduler
 
 
 class FGSMUpdater(PerturbationUpdater):
-    def __init__(self, lr: float = 2 / 255, scheduler: Scheduler=None, *args, **kwargs):
+    def __init__(self,
+                 lr: float = 2 / 255,
+                 scheduler: Scheduler = None,
+                 *args,
+                 **kwargs):
         super(FGSMUpdater, self).__init__(lr, scheduler, *args, **kwargs)
 
     def update(

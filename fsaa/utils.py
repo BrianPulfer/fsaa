@@ -15,10 +15,10 @@ from fsaa.models.hf.hf_models import SUPPORTED_HF_MODELS, HFModel
 from fsaa.models.hub.hub_models import SUPPORTED_HUB_MODELS, HubModel
 from fsaa.models.ibot.ibot import SUPPORTED_IBOT_MODELS, iBOTModel
 from fsaa.models.ijepa.ijepa import IJEPA, SUPPORTED_IJEPA_MODELS
-from fsaa.updaters.lr_schedulers.linear import LinearScheduler
-from fsaa.updaters.lr_schedulers.function import FunctionScheduler
 from fsaa.updaters.fgsm import FGSMUpdater
 from fsaa.updaters.langevin import LangevinUpdater
+from fsaa.updaters.lr_schedulers.function import FunctionScheduler
+from fsaa.updaters.lr_schedulers.linear import LinearScheduler
 from fsaa.updaters.pgd import PGDUpdater
 from fsaa.updaters.random import RandomUpdater
 
@@ -46,18 +46,14 @@ LOSSES = {
     "LPIPSVGG": LPIPSVGGLoss,
 }
 
-MASKS = {
-    "JND": JNDMask,
-    "Custom": CustomMask,
-    "NoMask": NoMask
-}
+MASKS = {"JND": JNDMask, "Custom": CustomMask, "NoMask": NoMask}
 
 SUPPORTED_MODELS = (
-    SUPPORTED_CAE_MODELS +
-    SUPPORTED_HUB_MODELS +
-    SUPPORTED_HF_MODELS +
-    SUPPORTED_IBOT_MODELS +
-    SUPPORTED_IJEPA_MODELS
+    SUPPORTED_CAE_MODELS
+    + SUPPORTED_HUB_MODELS
+    + SUPPORTED_HF_MODELS
+    + SUPPORTED_IBOT_MODELS
+    + SUPPORTED_IJEPA_MODELS
 )
 
 
@@ -65,12 +61,15 @@ def get_initializer(name: str, lr: float, **kwargs) -> PerturbationInitializer:
     """Returns the initializer used for the attack."""
     return INITIALIZERS[name](lr, **kwargs)
 
+
 def get_scheduler(name: str, lr: float, **kwargs) -> PerturbationUpdater:
     return SCHEDULERS[name](lr, **kwargs)
+
 
 def get_updater(name: str, lr: float, **kwargs) -> PerturbationUpdater:
     """Returns the updater used for the attack."""
     return UPDATERS[name](lr, **kwargs)
+
 
 def get_loss(name: str, **kwargs) -> Module:
     """Returns the loss used for the attack."""

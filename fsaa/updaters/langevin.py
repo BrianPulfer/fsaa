@@ -8,7 +8,7 @@ class LangevinUpdater(PerturbationUpdater):
 
     def __init__(self,
                  lr: float = 2 / 255,
-                 scheduler: Scheduler=None,
+                 scheduler: Scheduler = None,
                  eta: float = None,
                  *args,
                  **kwargs):

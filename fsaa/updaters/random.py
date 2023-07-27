@@ -7,7 +7,11 @@ class RandomUpdater(PerturbationUpdater):
     """Random perturbation update.
     It servers as a baseline for other attacks."""
 
-    def __init__(self, lr: float = 2 / 255, scheduler: Scheduler=None, *args, **kwargs):
+    def __init__(self,
+                 lr: float = 2 / 255,
+                 scheduler: Scheduler = None,
+                 *args,
+                 **kwargs):
         super(RandomUpdater, self).__init__(lr, scheduler, *args, **kwargs)
 
     def update(
