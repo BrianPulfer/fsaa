@@ -18,8 +18,12 @@ classifiers = [
 ]
 dependencies = [
     "accelerate",
+    "gdown",
     "lpips",
     "numpy",
+    "pre-commit",
+    "pytest",
+    "timm",
     "torch",
     "torchvision",
     "tqdm",
