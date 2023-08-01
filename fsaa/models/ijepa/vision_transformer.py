@@ -575,7 +575,8 @@ class VisionTransformer(nn.Module):
         if self.norm is not None:
             x = self.norm(x)
 
-        return x
+        # return x
+        return x[:, 0]  # return only the cls token
 
     def interpolate_pos_encoding(self, x, pos_embed):
         npatch = x.shape[1] - 1
