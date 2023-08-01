@@ -8,6 +8,9 @@ sed -i "s/date-released: .*/date-released: $(date +%Y-%m-%d)/" CITATION.cff
 
 # Update the README.md file.
 sed -i "s/version = {.*}/version = {$1}/" README.md
+sed -i "s/year = {.*}/year = {$(date +%Y)}/" README.md
+sed -i "s/month = .*/month = $(date +%B)/" README.md
+
 
 # Update the pyproject.toml file.
 sed -i "s/version = \".*\"/version = \"$1\"/" pyproject.toml
