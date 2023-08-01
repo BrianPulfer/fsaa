@@ -117,7 +117,7 @@ author = {Pulfer, Brian},
 month = jul,
 title = {{FSAA}},
 url = {https://github.com/BrianPulfer/fsaa},
-version = {0.0.9},
+version = {0.1.0},
 year = {2023}
 }
 ```
