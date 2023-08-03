@@ -1,8 +1,7 @@
 <h1 align="center">
   <img width="auto" height="150px" src="assets/logo.png" />
 </h1>
-<a href="https://pypi.org/project/fsaa/" rel="nofollow"><img src="https://img.shields.io/pypi/v/fsaa
-" alt="PyPi"style="max-width: 100%;"></a>
+<a href="https://pypi.org/project/fsaa/" rel="nofollow"><img src="https://img.shields.io/pypi/v/fsaa" alt="PyPi"style="max-width: 100%;"></a>
 <a href="https://pypi.org/project/fsaa" rel="nofollow"><img src="https://img.shields.io/pypi/dm/fsaa" alt="Downloads" style="max-width: 100%;"></a>
 <a href="https://github.com/BrianPulfer/fsaa" rel="nofollow"><img src="https://img.shields.io/github/stars/BrianPulfer/fsaa?style=social" alt="Downloads" style="max-width: 100%;"></a>
 
