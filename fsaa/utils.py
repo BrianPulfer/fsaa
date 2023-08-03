@@ -1,4 +1,8 @@
+from typing import Callable
+
+from torch import nn
 from torch.nn import Module
+from torch.nn import functional as F
 
 from fsaa.core import (PerceptualMask, PerturbationInitializer,
                        PerturbationUpdater)
@@ -71,9 +75,15 @@ def get_updater(name: str, lr: float, **kwargs) -> PerturbationUpdater:
     return UPDATERS[name](lr, **kwargs)
 
 
-def get_loss(name: str, **kwargs) -> Module:
+def get_loss(name: str, **kwargs) -> Callable:
     """Returns the loss used for the attack."""
-    return LOSSES[name](**kwargs)
+    if name in LOSSES:
+        return LOSSES[name](**kwargs)
+    if hasattr(nn, name):
+        return getattr(nn, name)(**kwargs)
+    if hasattr(F, name):
+        return getattr(F, name)
+    raise ValueError(f"Loss '{name}' is not supported. Pick one of {LOSSES} or use a loss either from torch.nn or torch.nn.functional")
 
 
 def get_mask(name: str, **kwargs) -> PerceptualMask:
