@@ -13,7 +13,7 @@ class LPIPSAlexLoss(Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Computes the LPIPS loss between two tensors x and y.
         Both tensors should be normalized in range [0, 1]."""
-        return self.net(x, y, normalize=True).mean()
+        return self.net(x, y, normalize=True)
 
 
 class LPIPSVGGLoss(Module):
@@ -26,4 +26,4 @@ class LPIPSVGGLoss(Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Computes the LPIPS loss between two tensors x and y.
         Both tensors should be normalized in range [0, 1]."""
-        return self.net(x, y, normalize=True).mean()
+        return self.net(x, y, normalize=True)

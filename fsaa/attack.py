@@ -87,8 +87,8 @@ def attack(
     mask = None if perceptual_mask is None else perceptual_mask(x).detach()
 
     # Performing attack
-    best_loss = float("inf")
-    best_adv = x_adv
+    best_loss = torch.tensor([float("inf")] * len(x)).to(device)
+    best_adv = x_adv.detach()
     bar = range(steps) if not pbar else tqdm(
         range(steps), desc="Attack", leave=False)
     for step in bar:
@@ -97,10 +97,12 @@ def attack(
         features = model(x_adv)
 
         # Computing the gradient w.r.t loss
-        i_loss = 0 if ilw == 0 else ilw * image_loss(x_adv, x).mean()
-        f_loss = 0 if flw == 0 else flw * feature_loss(features, labels).mean()
+        i_loss = 0 if ilw == 0 else ilw * \
+            image_loss(x_adv, x).mean(dim=list(range(1, x.ndim)))
+        f_loss = 0 if flw == 0 else flw * \
+            feature_loss(features, labels).mean(dim=1)
         loss = f_loss + i_loss
-        grad = torch.autograd.grad(loss, x_adv)[0]
+        grad = torch.autograd.grad(loss.mean(), x_adv)[0]
 
         if torch.all(grad == 0):
             warn("Gradient is zero. Stopping attack.")
@@ -110,13 +112,14 @@ def attack(
         if mask is not None:
             grad = mask * grad
 
-        # Storing best perturbation
-        if best_loss > loss and (ilw == 0 or i_loss / ilw <= max_img_loss):
-            best_loss = loss
-            best_adv = x_adv.clone().detach()
-
         # Updating perturbation
         x_adv = updater(x_adv.detach(), grad, step, steps, loss)
         x_adv = torch.clamp(x_adv, min=0, max=1).detach()
+
+        # Storing best perturbation
+        update_best = torch.bitwise_and(
+            loss < best_loss, ilw == 0 or i_loss / ilw <= max_img_loss)
+        best_loss[update_best] = loss[update_best].detach()
+        best_adv[update_best] = x_adv[update_best].clone().detach()
 
     return best_adv
