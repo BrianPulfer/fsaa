@@ -18,8 +18,6 @@ from fsaa.models.hf.hf_models import SUPPORTED_HF_MODELS, HFModel
 from fsaa.models.hub.hub_models import SUPPORTED_HUB_MODELS, HubModel
 from fsaa.models.ibot.ibot import SUPPORTED_IBOT_MODELS, iBOTModel
 from fsaa.models.ijepa.ijepa import IJEPA, SUPPORTED_IJEPA_MODELS
-from fsaa.updaters.fgsm import FGSMUpdater
-from fsaa.updaters.langevin import LangevinUpdater
 from fsaa.updaters.lr_schedulers.function import FunctionScheduler
 from fsaa.updaters.lr_schedulers.linear import LinearScheduler
 from fsaa.updaters.pgd import PGDUpdater
@@ -36,8 +34,6 @@ SCHEDULERS = {
 }
 
 UPDATERS = {
-    "FGSM": FGSMUpdater,
-    "Langevin": LangevinUpdater,
     "PGD": PGDUpdater,
     "Random": RandomUpdater,
 }
