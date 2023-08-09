@@ -1,3 +1,4 @@
+from typing import List
 from warnings import warn
 
 import torch
@@ -5,20 +6,21 @@ from torch import Tensor
 from torch.nn import Module
 from tqdm.auto import tqdm
 
-from fsaa.core import (DifferentiableTransform, PerceptualMask,
-                       PerturbationInitializer, PerturbationUpdater)
+from fsaa.core import (
+    DifferentiableTransform,
+    PerceptualMask,
+    PerturbationInitializer,
+    PerturbationUpdater,
+)
+
 from fsaa.initializers.random import RandomInitializer
 from fsaa.losses.mse_loss import MeanSquaredErrorLoss
 from fsaa.updaters.pgd import PGDUpdater
-
+from fsaa.transforms.normalize import DEFAULT_IMAGE_RANGE
 
 class TransformAndModelWrapper(Module):
     def __init__(
-        self,
-        model: Module,
-        transform: DifferentiableTransform,
-        *args,
-        **kwargs
+        self, model: Module, transform: DifferentiableTransform, *args, **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
         self.model = model
@@ -40,8 +42,9 @@ def attack(
     ilw: float = 1.0,
     flw: float = -1.0,
     perceptual_mask: PerceptualMask = None,
-    pbar: bool = True,
     max_img_loss: float = float("inf"),
+    image_range: List[tuple] = DEFAULT_IMAGE_RANGE,
+    pbar: bool = True,
     device: torch.device = None,
 ) -> Tensor:
     r"""
@@ -60,19 +63,26 @@ def attack(
         ilw (float): Weight of the image loss.
         flw (float): Weight of the feature loss.
         perceptual_mask (PerceptualMask): Mask to apply to the gradient.
-        pbar (bool): Whether to show a progress bar.
         max_img_loss (float): Maximum image loss allowed (without weighting).
+        image_range (List[tuple]): Image range to clamp the perturbation channel-wise.
+        pbar (bool): Whether to show a progress bar.
         device (torch.device): Device to use.
     """
-    assert 0 <= x.min() and x.max() <= 1, "x must be in [0, 1]. "
-
     # Set model to eval mode
     model = model.eval()
 
     # Initialize perturbation and feature labels
     device = x.device if device is None else device
     x = x.clone().detach().to(device)
-    x_adv = initializer(x).clone().detach().clamp(0, 1)
+    x_adv = initializer(x).clone().detach()
+    
+    def clamp_in_range(x, image_range):
+        return x.permute(0, 2, 3, 1).clamp(image_range[0], image_range[1]).permute(0, 3, 1, 2)
+    
+    if image_range is not None:
+        assert image_range.shape == (2, 3), "Image range should be channel-wise."
+        image_range = image_range.to(device)
+        x_adv = clamp_in_range(x_adv, image_range)
 
     # Copy labels and detach from graph
     if labels is None:
@@ -89,18 +99,22 @@ def attack(
     # Performing attack
     best_loss = torch.tensor([float("inf")] * len(x)).to(device)
     best_adv = x_adv.detach()
-    bar = range(steps) if not pbar else tqdm(
-        range(steps), desc="Attack", leave=False)
+    bar = range(steps) if not pbar else tqdm(range(steps), desc="Attack", leave=False)
     for step in bar:
         # Getting feature representation
         x_adv.requires_grad = True
         features = model(x_adv)
 
         # Computing the gradient w.r.t loss
-        i_loss = 0 if ilw == 0 else ilw * \
-            image_loss(x_adv, x).mean(dim=list(range(1, x.ndim)))
-        f_loss = 0 if flw == 0 else flw * \
-            feature_loss(features, labels).mean(dim=1)
+        i_loss = 0 if ilw == 0 else ilw * image_loss(x_adv, x)
+        f_loss = 0 if flw == 0 else flw * feature_loss(features, labels)
+
+        if i_loss.ndim > 1:
+            i_loss = i_loss.mean(dim=list(range(1, i_loss.ndim)))
+
+        if f_loss.ndim > 1:
+            f_loss = f_loss.mean(dim=list(range(1, f_loss.ndim)))
+
         loss = f_loss + i_loss
         grad = torch.autograd.grad(loss.mean(), x_adv)[0]
 
@@ -114,11 +128,14 @@ def attack(
 
         # Updating perturbation
         x_adv = updater(x_adv.detach(), grad, step, steps, loss)
-        x_adv = torch.clamp(x_adv, min=0, max=1).detach()
+        if image_range is not None:
+            x_adv = clamp_in_range(x_adv, image_range)
+        x_adv = x_adv.detach()
 
         # Storing best perturbation
         update_best = torch.bitwise_and(
-            loss < best_loss, ilw == 0 or i_loss / ilw <= max_img_loss)
+            loss < best_loss, ilw == 0 or i_loss / ilw <= max_img_loss
+        )
         best_loss[update_best] = loss[update_best].detach()
         best_adv[update_best] = x_adv[update_best].clone().detach()
 

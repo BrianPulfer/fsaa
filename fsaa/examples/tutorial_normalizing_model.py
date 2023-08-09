@@ -1,8 +1,9 @@
 import requests as r
 import torch
+import torch.nn as nn
 from PIL import Image
 from torchvision.models.resnet import resnet18
-from torchvision.transforms import ToTensor
+from torchvision.transforms import Compose, CenterCrop, Resize, ToTensor
 
 from fsaa.attack import TransformAndModelWrapper, attack
 from fsaa.masks.jnd import JNDMask
@@ -27,10 +28,15 @@ model = TransformAndModelWrapper(
 ).to(device).eval()
 
 # Batch of data
-# No pre-processing is needed (just ToTensor)
+# No normalization is needed
 url = "http://images.cocodataset.org/val2017/000000039769.jpg"
 image = Image.open(r.get(url, stream=True).raw)
-batch = ToTensor()(image).unsqueeze(0).to(device)
+transform = Compose([
+    Resize(224),
+    CenterCrop(224),
+    ToTensor()
+])
+batch = transform(image).unsqueeze(0).to(device)
 
 # Label for the attack
 features = model(batch).detach()
@@ -40,13 +46,13 @@ adv_batch = attack(
     model,
     batch,
     labels=features,
-    steps=100,
-    initializer=get_initializer("Random", 1 / 255),
-    updater=get_updater("PGD", lr=2 / 255),
+    steps=350,
+    initializer=get_initializer("Random", 4e-4),
+    updater=get_updater("PGD", 4e-4),
     image_loss=get_loss("MSE"),
-    feature_loss=get_loss("MSE"),
+    feature_loss=get_loss("CosSim"),
     ilw=1,  # Minimize MSE in image space
-    flw=-1,  # Maximize MSE in feature space
+    flw=1,  # Minimize Cosine Similarity in feature space
     perceptual_mask=JNDMask(),
     max_img_loss=0.001,  # Maximum MSE in image space
     device=device,
@@ -56,7 +62,7 @@ adv_batch = attack(
 with torch.no_grad():
     adv_features = model(adv_batch)
 
-mse_f = (features - adv_features).pow(2).mean().item()
-mse_i = (batch - adv_batch).pow(2).mean().item()
-print(f"MSE in feature space: {mse_f:.4f}")
-print(f"MSE in image space: {mse_i:.4f}")
+cossim = nn.CosineSimilarity()(features, adv_features).item()
+mse = (batch - adv_batch).pow(2).mean().item()
+print(f"Cosine Similarity in feature space: {cossim:.4f}")
+print(f"MSE in image space: {mse:.4f}")
