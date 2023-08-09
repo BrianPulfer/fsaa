@@ -16,7 +16,6 @@ torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Model to be attacked
-# Note: we backprop all the way before pre-processing!
 model = resnet18(weights="ResNet18_Weights.IMAGENET1K_V1")
 model = model.to(device).eval()
 
