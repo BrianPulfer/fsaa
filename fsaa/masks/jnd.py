@@ -39,6 +39,7 @@ class JNDMask(PerceptualMask):
 
     def mask(self, x):
         assert x.ndim == 4
+        assert 0 <= x.min() and x.max() <= 1, "x must be in [0,1] for JND masking."
 
         jnd_mask = self._jnd(x)
         jnd_mask = jnd_mask / jnd_mask.max()
@@ -75,18 +76,3 @@ class JNDMask(PerceptualMask):
         cm = torch.sqrt(grad_x**2 + grad_y**2)
         cm = 16 * cm**2.4 / (cm**2 + 26**2)
         return beta * cm
-
-
-if __name__ == "__main__":
-    import requests
-    from PIL import Image
-    from torchvision.transforms import ToPILImage, ToTensor
-
-    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    image = Image.open(requests.get(url, stream=True).raw)
-
-    image = ToTensor()(image).unsqueeze(0)
-    mask = JNDMask()(image)
-
-    tensor = torch.cat([image, mask.repeat(1, 3, 1, 1)], dim=2).squeeze(0)
-    ToPILImage()(tensor).save("debug.png")

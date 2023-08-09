@@ -1,5 +1,6 @@
 from warnings import warn
 
+import torch
 from torch import Tensor
 from torchvision.transforms import Normalize as TorchNormalize
 
@@ -14,13 +15,29 @@ IMAGENET_STD = [0.229, 0.224, 0.225]
 OPENAI_NORMALIZATION_MEAN = [0.48145466, 0.4578275, 0.40821073]
 OPENAI_NORMALIZATION_STD = [0.26862954, 0.26130258, 0.27577711]
 
+DEFAULT_IMAGE_RANGE = torch.tensor([
+    [0, 0, 0],
+    [1, 1, 1]
+])
+
+IMAGENET_INCEPTION_IMAGE_RANGE = torch.tensor([
+    [-1, -1, -1],
+    [1, 1, 1]
+])
+
+IMAGENET_IMAGE_RANGE = torch.tensor([
+    [-m/s for m, s in zip(IMAGENET_MEAN, IMAGENET_STD)],
+    [(1 - m)/s for m, s in zip(IMAGENET_MEAN, IMAGENET_STD)]
+])
+
+OPENAI_IMAGE_RANGE = torch.tensor([
+    [-m/s for m, s in zip(OPENAI_NORMALIZATION_MEAN, OPENAI_NORMALIZATION_STD)],
+    [(1 - m)/s for m, s in zip(OPENAI_NORMALIZATION_MEAN, OPENAI_NORMALIZATION_STD)]
+])
+
 
 class Normalize(DifferentiableTransform):
-    def __init__(self,
-                 mean: Tensor = None,
-                 std: Tensor = None,
-                 *args,
-                 **kwargs):
+    def __init__(self, mean: Tensor = None, std: Tensor = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         if mean is None:
