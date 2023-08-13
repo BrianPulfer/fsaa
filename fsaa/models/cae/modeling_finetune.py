@@ -555,7 +555,7 @@ class VisionTransformer(nn.Module):
                 t = x[:, 1:, :]
                 return self.fc_norm(t.mean(1))
             else:
-                return x[:, 0]
+                return x
 
     def forward(self, x, is_train=True):
         x = self.forward_features(x, is_train)

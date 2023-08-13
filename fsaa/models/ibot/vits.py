@@ -192,7 +192,7 @@ class VisionTransformer(nn.Module):
         attn_drop_rate=0.0,
         drop_path_rate=0.0,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        return_all_tokens=False,
+        return_all_tokens=True,  # Modified as to return all tokens by default
         init_values=0,
         use_mean_pooling=False,
         masked_im_modeling=False,

@@ -76,6 +76,7 @@ class CAEModel(nn.Module):
         # Initializing CAE model
         cae = name_to_model(model_name)
         cae.head = nn.Identity()
+        cae.fc_norm = None
 
         cae.load_state_dict(state_dict, strict=True)
 

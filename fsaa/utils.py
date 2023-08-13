@@ -86,25 +86,25 @@ def get_mask(name: str, **kwargs) -> PerceptualMask:
     return MASKS[name](**kwargs)
 
 
-def get_model(model_name: str) -> Module:
+def get_model(model_name: str, *args, **kwargs) -> Module:
     """Returns the model used for the attack."""
     if model_name not in SUPPORTED_MODELS:
         raise ValueError(
             f"Model '{model_name}' is not supported. \
-                Pick one of {SUPPORTED_MODELS}"
+            Pick one of {SUPPORTED_MODELS}"
         )
 
     if model_name in SUPPORTED_CAE_MODELS:
-        return CAEModel(model_name)
+        return CAEModel(model_name, *args, **kwargs)
 
     if model_name in SUPPORTED_HUB_MODELS:
-        return HubModel(model_name)
+        return HubModel(model_name, *args, **kwargs)
 
     if model_name in SUPPORTED_HF_MODELS:
-        return HFModel(model_name)
+        return HFModel(model_name, *args, **kwargs)
 
     if model_name in SUPPORTED_IBOT_MODELS:
-        return iBOTModel(model_name)
+        return iBOTModel(model_name, *args, **kwargs)
 
     if model_name in SUPPORTED_IJEPA_MODELS:
-        return IJEPA(model_name)
+        return IJEPA(model_name, *args, **kwargs)

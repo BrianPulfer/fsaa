@@ -1,3 +1,4 @@
+import torch
 from torch.nn import Module
 from transformers import AutoModel, logging
 
@@ -51,7 +52,7 @@ def name_to_model(model_name: str):
 class HFModel(Module):
     """Base class for all feature extractors."""
 
-    def __init__(self, model_name):
+    def __init__(self, model_name, *args, **kwargs):
         super(HFModel, self).__init__()
         if model_name not in SUPPORTED_HF_MODELS:
             raise ValueError(
@@ -59,6 +60,7 @@ class HFModel(Module):
                 Pick one of {SUPPORTED_BEIT_MODELS}"
             )
 
+        self.model_name = model_name
         hf_model = name_to_model(model_name)
 
         if model_name in SUPPORTED_BEIT_MODELS:
@@ -72,4 +74,25 @@ class HFModel(Module):
 
     def forward(self, x):
         """Runs the given batch through the model to extract features."""
-        return self.model(x)["last_hidden_state"][:, 0, :]
+        out = self.model(x)
+        hidden_state = out["last_hidden_state"]
+
+        # Sorting tokens in hidden state for MAE models
+        if self.model_name in SUPPORTED_MAE_MODELS:
+            d = hidden_state.shape[-1]
+            ids = out['ids_restore']
+            ids = ids.unsqueeze(-1).expand(-1, -1, d)
+
+            hidden_state = torch.cat(
+                [
+                    hidden_state[:, 0].unsqueeze(1),
+                    torch.gather(
+                        hidden_state[:, 1:],
+                        dim=1,
+                        index=ids
+                    )
+                ],
+                dim=1
+            )
+
+        return hidden_state

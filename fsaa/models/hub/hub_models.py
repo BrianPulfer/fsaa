@@ -39,7 +39,7 @@ SUPPORTED_HUB_MODELS = (
 class HubModel(Module):
     """Base class for all feature extractors."""
 
-    def __init__(self, model_name):
+    def __init__(self, model_name, *args, **kwargs):
         super(HubModel, self).__init__()
         if model_name not in SUPPORTED_HUB_MODELS:
             raise ValueError(

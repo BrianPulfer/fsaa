@@ -27,20 +27,6 @@ def image_device():
 
 
 @torch.no_grad()
-def test_dimensions(image_device):
-    """Tests that all models output the same number of dimensions."""
-    image, device = image_device
-    tensor = totensor(image, device)
-    for name in SUPPORTED_MODELS:
-        try:
-            model = get_model(name).to(device).eval()
-            output = model(tensor)
-            assert output.ndim == 2, f"Model {name} has {output.ndim} dims"
-        except RuntimeError:
-            warn(f"Model {name} failed to run on device {device}")
-
-
-@torch.no_grad()
 def test_stochasticity(image_device):
     """Tests that all models are approximately deterministic."""
     image, device = image_device
