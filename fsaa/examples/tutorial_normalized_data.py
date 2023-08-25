@@ -3,11 +3,12 @@ import torch
 import torch.nn as nn
 from PIL import Image
 from torchvision.models.resnet import resnet18
-from torchvision.transforms import Compose, CenterCrop, Resize, ToTensor, Normalize
+from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
+                                    ToTensor)
 
 from fsaa.attack import attack
-from fsaa.utils import get_initializer, get_loss, get_updater
 from fsaa.transforms.normalize import IMAGENET_IMAGE_RANGE
+from fsaa.utils import get_initializer, get_loss, get_updater
 
 # Reproducibility
 torch.manual_seed(0)

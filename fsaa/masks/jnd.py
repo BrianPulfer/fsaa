@@ -39,7 +39,8 @@ class JNDMask(PerceptualMask):
 
     def mask(self, x):
         assert x.ndim == 4
-        assert 0 <= x.min() and x.max() <= 1, "x must be in [0,1] for JND masking."
+        assert 0 <= x.min() and x.max(
+        ) <= 1, "x must be in [0,1] for JND masking."
 
         jnd_mask = self._jnd(x)
         jnd_mask = jnd_mask / jnd_mask.max()

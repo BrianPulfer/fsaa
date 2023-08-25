@@ -26,13 +26,14 @@ IMAGENET_INCEPTION_IMAGE_RANGE = torch.tensor([
 ])
 
 IMAGENET_IMAGE_RANGE = torch.tensor([
-    [-m/s for m, s in zip(IMAGENET_MEAN, IMAGENET_STD)],
-    [(1 - m)/s for m, s in zip(IMAGENET_MEAN, IMAGENET_STD)]
+    [-m / s for m, s in zip(IMAGENET_MEAN, IMAGENET_STD)],
+    [(1 - m) / s for m, s in zip(IMAGENET_MEAN, IMAGENET_STD)]
 ])
 
 OPENAI_IMAGE_RANGE = torch.tensor([
-    [-m/s for m, s in zip(OPENAI_NORMALIZATION_MEAN, OPENAI_NORMALIZATION_STD)],
-    [(1 - m)/s for m, s in zip(OPENAI_NORMALIZATION_MEAN, OPENAI_NORMALIZATION_STD)]
+    [-m / s for m, s in zip(OPENAI_NORMALIZATION_MEAN,
+                            OPENAI_NORMALIZATION_STD)],
+    [(1 - m) / s for m, s in zip(OPENAI_NORMALIZATION_MEAN, OPENAI_NORMALIZATION_STD)]
 ])
 
 

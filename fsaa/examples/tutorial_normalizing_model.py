@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from PIL import Image
 from torchvision.models.resnet import resnet18
-from torchvision.transforms import Compose, CenterCrop, Resize, ToTensor
+from torchvision.transforms import CenterCrop, Compose, Resize, ToTensor
 
 from fsaa.attack import TransformAndModelWrapper, attack
 from fsaa.masks.jnd import JNDMask
