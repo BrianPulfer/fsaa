@@ -120,7 +120,7 @@ ___
 ## Citation
 If you used this library as part of your work, please cite the repository as follows:
 
-```
+```bibtex
 @software{Pulfer_FSAA_2023,
 author = {Pulfer, Brian},
 month = jul,
