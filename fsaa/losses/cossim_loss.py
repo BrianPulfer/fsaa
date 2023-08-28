@@ -8,4 +8,4 @@ class CosSimLoss(Module):
         self.criterion = CosineSimilarity(dim=-1)
 
     def forward(self, x: Tensor, y: Tensor) -> Tensor:
-        return self.criterion(x, y)
+        return self.criterion(x.flatten(start_dim=1), y.flatten(start_dim=1))
