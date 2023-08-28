@@ -69,8 +69,8 @@ def attack(
 
     # Initialize perturbation and feature labels
     device = x.device if device is None else device
-    x = x.clone().detach().to(device)
-    x_adv = initializer(x).clone().detach()
+    x = x.detach().clone().to(device)
+    x_adv = initializer(x).detach().clone()
 
     def clamp_in_range(x, image_range):
         return x.permute(0, 2, 3, 1).clamp(image_range[0], image_range[1]).permute(0, 3, 1, 2)
@@ -85,7 +85,7 @@ def attack(
     if labels is None:
         with torch.no_grad():
             labels = model(x)
-    labels = labels.clone().detach().to(device)
+    labels = labels.detach().clone().to(device)
 
     # Moving losses to device
     image_loss = image_loss.to(device)
@@ -93,10 +93,12 @@ def attack(
 
     # Getting the mask
     mask = None if perceptual_mask is None else perceptual_mask(x).detach()
+    if mask is not None:
+        assert 0 <= mask.min() and mask.max() <= 1, "Mask should be between 0 and 1."
 
     # Performing attack
     best_loss = torch.tensor([float("inf")] * len(x)).to(device)
-    best_adv = x_adv.clone().detach()
+    best_adv = x_adv.detach().clone()
     bar = range(steps) if not pbar else tqdm(
         range(steps), desc="Attack", leave=False)
     for step in bar:
@@ -121,7 +123,7 @@ def attack(
             loss < best_loss, ilw == 0 or i_loss / ilw <= max_img_loss
         )
         best_loss[update_best] = loss[update_best].detach()
-        best_adv[update_best] = x_adv[update_best].clone().detach()
+        best_adv[update_best] = x_adv[update_best].detach().clone()
 
         grad = torch.autograd.grad(loss.mean(), x_adv)[0]
 
@@ -129,14 +131,18 @@ def attack(
             warn("Gradient is zero. Stopping attack.")
             break
 
-        # Masking the gradient
-        if mask is not None:
-            grad = mask * grad
-
         # Updating perturbation
-        x_adv = updater(x_adv.detach(), grad, step, steps, loss)
+        x_adv_new = updater(x_adv.detach(), grad, step, steps, loss)
+
+        # Masking the update to be less perceptible
+        if mask is not None:
+            update = (x_adv_new - x_adv).detach()
+            x_adv_new = x_adv.detach() + update * mask
+
+        # Clamping to image range
         if image_range is not None:
-            x_adv = clamp_in_range(x_adv, image_range)
-        x_adv = x_adv.detach()
+            x_adv_new = clamp_in_range(x_adv_new, image_range)
+
+        x_adv = x_adv_new.detach()
 
     return best_adv
