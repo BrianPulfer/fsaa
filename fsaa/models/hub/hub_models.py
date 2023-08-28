@@ -41,6 +41,8 @@ class HubModel(Module):
 
     def __init__(self, model_name, *args, **kwargs):
         super(HubModel, self).__init__()
+        self.model_name = model_name
+
         if model_name not in SUPPORTED_HUB_MODELS:
             raise ValueError(
                 f"Model '{model_name}' is not supported. \
@@ -77,4 +79,8 @@ class HubModel(Module):
         )
 
     def forward(self, x):
+        if self.model_name in SUPPORTED_DINOV2_MODELS:
+            x = self.model.transform(x)
+            out = self.model.model.forward_features(x)["x_prenorm"]
+            return out
         return self.model(x)

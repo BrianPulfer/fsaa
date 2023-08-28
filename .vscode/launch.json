@@ -14,17 +14,6 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             }
-        },
-        {
-            "name": "Tutorial",
-            "type": "python",
-            "request": "launch",
-            "program": "fsaa/examples/tutorial.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
         }
     ]
 }
