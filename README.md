@@ -123,10 +123,10 @@ If you used this library as part of your work, please cite the repository as fol
 ```bibtex
 @software{Pulfer_FSAA_2023,
 author = {Pulfer, Brian},
-month = jul,
+month = August
 title = {{FSAA}},
 url = {https://github.com/BrianPulfer/fsaa},
-version = {0.1.0},
+version = {0.0.1},
 year = {2023}
 }
 ```
