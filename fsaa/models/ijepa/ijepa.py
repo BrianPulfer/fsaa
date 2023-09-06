@@ -25,7 +25,7 @@ NAMES_TO_MODELS = {
 
 
 class IJEPA(nn.Module):
-    def __init__(self, model_name, cache_dir="./.ijepa_cache", *args, **kwargs):
+    def __init__(self, model_name, cache_dir="~/.cache/fsaa/ijepa_cache", *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Checking if the model is supported
