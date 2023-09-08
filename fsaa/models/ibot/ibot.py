@@ -34,7 +34,7 @@ class iBOTModel(nn.Module):
     def __init__(
         self,
         model_name,
-        cache_dir="~/.cache/fsaa/ibot_cache",
+        cache_dir="~/.cache/fsaa/models/ibot",
         *args,
         **kwargs
     ) -> None:

@@ -44,7 +44,7 @@ def name_to_model(name: str):
 
 
 class CAEModel(nn.Module):
-    def __init__(self, model_name, cache_dir="./.cae_cache", *args, **kwargs) -> None:
+    def __init__(self, model_name, cache_dir="~/.cache/fsaa/models/cae", *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # Checking if the model is supported
