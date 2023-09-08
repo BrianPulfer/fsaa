@@ -9,9 +9,6 @@ from fsaa.core import PerceptualMask
 class CustomMask(PerceptualMask):
     """
     CustomMask allows to pass a custom tensor as a mask.
-
-    Args:
-        **kwargs: Keyword arguments to be passed to the parent class. Argument 'mask' is used to pass the custom mask.
     """
 
     def __init__(self, *args, **kwargs):
