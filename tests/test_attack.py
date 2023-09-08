@@ -6,7 +6,7 @@ from torchvision.models.resnet import resnet18
 from fsaa.attack import attack
 from fsaa.initializers.random import RandomInitializer
 from fsaa.losses.mse_loss import MeanSquaredErrorLoss
-from fsaa.updaters.fgsm import FGSMUpdater
+from fsaa.updaters.pgd import PGDUpdater
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def test_attacks(model_and_data):
         labels,
         1,
         RandomInitializer(),
-        FGSMUpdater(),
+        PGDUpdater(),
         MeanSquaredErrorLoss(),
         MeanSquaredErrorLoss(),
         0.0,
