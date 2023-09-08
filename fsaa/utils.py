@@ -4,7 +4,7 @@ from torch import nn
 from torch.nn import Module
 
 from fsaa.core import (PerceptualMask, PerturbationInitializer,
-                       PerturbationUpdater)
+                       PerturbationUpdater, Scheduler)
 from fsaa.initializers.random import RandomInitializer
 from fsaa.initializers.random_sign import RandomSignInitializer
 from fsaa.losses.cossim_loss import CosSimLoss
@@ -63,21 +63,57 @@ SUPPORTED_MODELS = (
 
 
 def get_initializer(name: str, lr: float, **kwargs) -> PerturbationInitializer:
-    """Returns the initializer used for the attack."""
+    """
+    Returns a perturbation initializer with the given name.
+
+    Args:
+        name (str): Name of the initializer.
+        lr (float): Learning rate (or magnitude) for the update.
+
+    Returns:
+        PerturbationInitializer: Perturbation initializer with the given name.
+    """
     return INITIALIZERS[name](lr, **kwargs)
 
 
-def get_scheduler(name: str, base_lr: float, **kwargs) -> PerturbationUpdater:
+def get_scheduler(name: str, base_lr: float, **kwargs) -> Scheduler:
+    """
+    Returns a scheduler with the given name.
+
+    Args:
+        name (str): Name of the scheduler.
+        base_lr (float): Base learning rate (or magnitude) for the update.
+
+    Returns:
+        Scheduler: Scheduler with the given name.
+    """
     return SCHEDULERS[name](base_lr, **kwargs)
 
 
 def get_updater(name: str, lr: float, **kwargs) -> PerturbationUpdater:
-    """Returns the updater used for the attack."""
+    """
+    Returns a perturbation updater with the given name.
+
+    Args:
+        name (str): Name of the updater.
+        lr (float): Learning rate (or magnitude) for the update.
+
+    Returns:
+        PerturbationUpdater: Perturbation updater with the given name.
+    """
     return UPDATERS[name](lr, **kwargs)
 
 
 def get_loss(name: str, **kwargs) -> Callable:
-    """Returns the loss used for the attack."""
+    """
+    Returns a loss with the given name.
+
+    Args:
+        name (str): Name of the loss.
+
+    Returns:
+        Callable: Loss with the given name.
+    """
     if name in LOSSES:
         return LOSSES[name](**kwargs)
     if hasattr(nn, name):
@@ -88,12 +124,30 @@ def get_loss(name: str, **kwargs) -> Callable:
 
 
 def get_mask(name: str, **kwargs) -> PerceptualMask:
-    """Returns the mask used for the attack."""
+    """
+    Returns a PerceptualMask with the given name.
+
+    Args:
+        name (str): Name of the masking method.
+
+    Returns:
+        PerceptualMask: Masking method with the given name.
+
+    """
     return MASKS[name](**kwargs)
 
 
 def get_model(model_name: str, *args, **kwargs) -> Module:
-    """Returns the model used for the attack."""
+    """
+    Returns the pre-trained model with the given name.
+    The model is wrapped with its corresponding pre-processing differentiable transform.
+
+    Args:
+        model_name (str): Name of the model.
+
+    Returns:
+        Module: Pre-trained model with the given name.
+    """
     if model_name not in SUPPORTED_MODELS:
         raise ValueError(
             f"Model '{model_name}' is not supported. \
