@@ -50,7 +50,13 @@ def name_to_model(model_name: str):
 
 
 class HFModel(Module):
-    """Base class for all feature extractors."""
+    """
+    Base class for all models from HuggingFace.
+    Models are wrapped with corresponding pre-processing normalization.
+
+    Args:
+        model_name (str): Name of the model to be used.
+    """
 
     def __init__(self, model_name, *args, **kwargs):
         super(HFModel, self).__init__()

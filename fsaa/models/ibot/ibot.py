@@ -31,6 +31,15 @@ def model_name_to_url(model_name: str):
 
 
 class iBOTModel(nn.Module):
+    f"""
+    Official iBOT model from https://arxiv.org/abs/2111.07832.
+    The model is wrapped with its pre-processing normalization.
+
+    Args:
+        model_name (str): Name of the model to be used. Pick one of {SUPPORTED_IBOT_MODELS}.
+        cache_dir (str): Path to the directory to cache the model checkpoints.
+    """
+
     def __init__(
         self,
         model_name,

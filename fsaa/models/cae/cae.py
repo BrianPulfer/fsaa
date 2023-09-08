@@ -44,6 +44,15 @@ def name_to_model(name: str):
 
 
 class CAEModel(nn.Module):
+    f"""
+    Official CAE model from https://arxiv.org/abs/2202.03026.
+    The model is wrapped with its pre-processing normalization.
+
+    Args:
+        model_name (str): Name of the model to be used. Pick one of {SUPPORTED_CAE_MODELS}.
+        cache_dir (str): Path to the directory to cache the model checkpoints.
+    """
+
     def __init__(self, model_name, cache_dir="~/.cache/fsaa/models/cae", *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 

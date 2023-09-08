@@ -37,7 +37,13 @@ SUPPORTED_HUB_MODELS = (
 
 
 class HubModel(Module):
-    """Base class for all feature extractors."""
+    """
+    Base class for all TorchHub models.
+    Models are wrapped with corresponding pre-processing normalization.
+
+    Args:
+        model_name (str): Name of the model to be used.
+    """
 
     def __init__(self, model_name, *args, **kwargs):
         super(HubModel, self).__init__()

@@ -25,6 +25,15 @@ NAMES_TO_MODELS = {
 
 
 class IJEPA(nn.Module):
+    f"""
+    Official I-JEPA model from https://arxiv.org/abs/2301.08243.
+    The model is wrapped with its pre-processing normalization.
+
+    Args:
+        model_name (str): Name of the model to be used. Pick one of {SUPPORTED_IJEPA_MODELS}.
+        cache_dir (str): Path to the directory to cache the model checkpoints.
+    """
+
     def __init__(self, model_name, cache_dir="~/.cache/fsaa/models/ijepa", *args, **kwargs):
         super().__init__(*args, **kwargs)
 
