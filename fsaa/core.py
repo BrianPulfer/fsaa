@@ -13,7 +13,7 @@ class PerturbationInitializer(ABC):
         lr: Learning rate (or magnitude) for the initial perturbation.
     """
 
-    def __init__(self, lr, *args, **kwargs):
+    def __init__(self, lr: float, *args, **kwargs):
         super(PerturbationInitializer, self).__init__(*args, **kwargs)
         self.lr = lr
 
@@ -109,7 +109,6 @@ class PerturbationUpdater(ABC):
         Args:
             x (Tensor): Input to perturb.
             grad (Tensor): Gradient of the loss with respect to the perturbation.
-            lr (float): Learning rate (or magnitude) for this update. Either the base learning rate or the learning rate returned by the scheduler.
             step (int): Current step of the attack.
             steps (int): Total number of steps of the attack.
             loss (Tensor): Loss of the current perturbation.
