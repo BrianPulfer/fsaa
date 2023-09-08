@@ -7,12 +7,15 @@ https://github.com/facebookresearch/active_indexing/blob/main/activeindex/attenu
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 
 from fsaa.core import PerceptualMask
 
 
 class JNDMask(PerceptualMask):
-    """https://ieeexplore.ieee.org/document/7885108"""
+    """
+    Just Noticeable Difference mask proposed in https://ieeexplore.ieee.org/document/7885108.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,7 +40,15 @@ class JNDMask(PerceptualMask):
 
         self.clc = kwargs.get("clc", 0.3)
 
-    def mask(self, x):
+    def mask(self, x: Tensor) -> Tensor:
+        """Masks the input tensor x with the JND mask.
+
+        Args:
+            x (Tensor): Input tensor to be masked.
+
+        Returns:
+            Tensor: Masked tensor.
+        """
         assert x.ndim == 4
         assert 0 <= x.min() and x.max(
         ) <= 1, "x must be in [0,1] for JND masking."

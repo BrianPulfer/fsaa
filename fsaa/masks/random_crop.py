@@ -1,18 +1,32 @@
 import torch
+from torch import Tensor
 
 from fsaa.core import PerceptualMask
 
 
 class RandomCropMask(PerceptualMask):
+    """Returns a random crop mask.
+
+    Args:
+        size (tuple): Size of the crop mask.
+    """
+
     def __init__(self, size):
         super(RandomCropMask, self).__init__()
         self.size = size
 
     def mask(
         self,
-        x,
-    ):
-        """Returns a random crop mask of the same size as the input."""
+        x: Tensor,
+    ) -> Tensor:
+        """Returns the random crop mask.
+
+        Args:
+            x (Tensor): The input tensor to be masked.
+
+        Returns:
+            Tensor: A mask of the same shape as x with ones in the crop region and zeros elsewhere.
+        """
 
         # Get input dimensions
         N, _, H, W = x.shape
