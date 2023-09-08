@@ -35,6 +35,10 @@ class IJEPA(nn.Module):
                 Pick one of {SUPPORTED_IJEPA_MODELS}"
             )
 
+        # Dealing with home directory
+        if cache_dir.startswith("~/"):
+            cache_dir = os.path.join(os.path.expanduser("~"), cache_dir[2:])
+
         # Loading the state dict
         os.makedirs(cache_dir, exist_ok=True)
         ckpt_path = os.path.join(cache_dir, f"{model_name}.pth")
