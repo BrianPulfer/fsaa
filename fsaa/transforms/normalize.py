@@ -38,6 +38,13 @@ OPENAI_IMAGE_RANGE = torch.tensor([
 
 
 class Normalize(DifferentiableTransform):
+    """Normalizes the input tensor with the given mean and std.
+
+    Args:
+        mean (Tensor): Mean used for normalization.
+        std (Tensor): Std used for normalization.
+    """
+
     def __init__(self, mean: Tensor = None, std: Tensor = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -52,4 +59,12 @@ class Normalize(DifferentiableTransform):
         self.transform = TorchNormalize(mean=mean, std=std)
 
     def process(self, x: Tensor) -> Tensor:
+        r"""Returns the normalized input by computing :math:`\frac{x - \mu}{\sigma}`.
+
+        Args:
+            x (Tensor): Input tensor.
+
+        Returns:
+            Tensor: Normalized input.
+        """
         return self.transform(x)
