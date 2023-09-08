@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import wget
 
-from fsaa.attack import TransformAndModelWrapper
+from fsaa.models.core import TransformAndModelWrapper
 from fsaa.models.ibot.vits import vit_base, vit_large
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 

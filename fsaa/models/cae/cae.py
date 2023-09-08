@@ -5,8 +5,8 @@ import gdown
 import torch
 import torch.nn as nn
 
-from fsaa.attack import TransformAndModelWrapper
 from fsaa.models.cae.modeling_finetune import VisionTransformer
+from fsaa.models.core import TransformAndModelWrapper
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 
 NAME_TO_URL = {

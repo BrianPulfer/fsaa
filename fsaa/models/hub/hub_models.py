@@ -1,7 +1,7 @@
 import torch
 from torch.nn import Module
 
-from fsaa.attack import TransformAndModelWrapper
+from fsaa.models.core import TransformAndModelWrapper
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 
 SUPPORTED_BARLOWTWINS_MODELS = [

@@ -18,7 +18,7 @@ from fsaa.models.cae.cae import SUPPORTED_CAE_MODELS, CAEModel
 from fsaa.models.hf.hf_models import SUPPORTED_HF_MODELS, HFModel
 from fsaa.models.hub.hub_models import SUPPORTED_HUB_MODELS, HubModel
 from fsaa.models.ibot.ibot import SUPPORTED_IBOT_MODELS, iBOTModel
-from fsaa.models.ijepa.ijepa import IJEPA, SUPPORTED_IJEPA_MODELS
+from fsaa.models.ijepa.ijepa import SUPPORTED_IJEPA_MODELS, IJEPAModel
 from fsaa.updaters.lr_schedulers.function import FunctionScheduler
 from fsaa.updaters.lr_schedulers.linear import LinearScheduler
 from fsaa.updaters.pgd import PGDUpdater
@@ -167,4 +167,4 @@ def get_model(model_name: str, *args, **kwargs) -> Module:
         return iBOTModel(model_name, *args, **kwargs)
 
     if model_name in SUPPORTED_IJEPA_MODELS:
-        return IJEPA(model_name, *args, **kwargs)
+        return IJEPAModel(model_name, *args, **kwargs)

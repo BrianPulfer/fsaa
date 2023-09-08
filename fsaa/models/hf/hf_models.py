@@ -2,7 +2,7 @@ import torch
 from torch.nn import Module
 from transformers import AutoModel, logging
 
-from fsaa.attack import TransformAndModelWrapper
+from fsaa.models.core import TransformAndModelWrapper
 from fsaa.transforms.normalize import (IMAGENET_INCEPTION_MEAN,
                                        IMAGENET_INCEPTION_STD, IMAGENET_MEAN,
                                        IMAGENET_STD, Normalize)

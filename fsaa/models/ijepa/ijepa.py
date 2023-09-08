@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import wget
 
-from fsaa.attack import TransformAndModelWrapper
+from fsaa.models.core import TransformAndModelWrapper
 from fsaa.models.ijepa.vision_transformer import vit_giant, vit_huge
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 
@@ -24,7 +24,7 @@ NAMES_TO_MODELS = {
 }
 
 
-class IJEPA(nn.Module):
+class IJEPAModel(nn.Module):
     f"""
     Official I-JEPA model from https://arxiv.org/abs/2301.08243.
     The model is wrapped with its pre-processing normalization.
