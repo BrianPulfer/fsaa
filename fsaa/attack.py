@@ -15,6 +15,14 @@ from fsaa.updaters.pgd import PGDUpdater
 
 
 class TransformAndModelWrapper(Module):
+    """
+    Creates a wrapper model that uses the given transform before passing the input to the given model.
+
+    Args:
+        model (Module): Model to wrap.
+        transform (DifferentiableTransform): Transform to apply.
+    """
+
     def __init__(
         self, model: Module, transform: DifferentiableTransform, *args, **kwargs
     ) -> None:
@@ -43,14 +51,14 @@ def attack(
     pbar: bool = True,
     device: torch.device = None,
 ) -> Tensor:
-    r"""
+    """
     Performs adversarial attack on the given model.
 
 
     Args:
         model (Module): Model to attack.
         x (Tensor): Batch of images to attack.
-        labels (Tensor): Labels of the batch of images.
+        labels (Tensor): Labels of the batch of images in feature space.
         steps (int): Number of steps to perform.
         initializer (PerturbationInitializer): Initializer of the perturbation.
         updater (PerturbationUpdate): Updater of the perturbation.
