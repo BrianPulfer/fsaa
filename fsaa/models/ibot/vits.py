@@ -313,7 +313,7 @@ class VisionTransformer(nn.Module):
 
         return self.pos_drop(x)
 
-    def forward(self, x, return_all_tokens=None, mask=None):
+    def forward(self, x, return_all_tokens=True, mask=None):
         # mim
         if self.masked_im_modeling:
             # assert mask is not None
