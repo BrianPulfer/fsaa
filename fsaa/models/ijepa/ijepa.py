@@ -75,3 +75,42 @@ class IJEPAModel(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+    def forward_activations(self, x, layer_idxs=None):
+        transform = self.model.transform
+        ijepa = self.model.model
+
+        # Normalizing input
+        x = transform(x)
+
+        # Patch embedding
+        x = ijepa.patch_embed(x)
+
+        pos_embed = ijepa.interpolate_pos_encoding(x, ijepa.pos_embed)
+        x = x + pos_embed
+
+        acts = [x]
+        for i, blk in enumerate(ijepa.blocks):
+            x = blk(x)
+
+            if i in layer_idxs or layer_idxs is None:
+                acts.append(x.clone().detach())
+
+        out = acts[-1]
+
+        if ijepa.norm is not None:
+            out = ijepa.norm(out)
+
+        return out, torch.stack(acts, dim=1)
+
+
+if __name__ == "__main__":
+    ijepa = IJEPAModel("ijepa_vith_14_pt22k").eval().cuda()
+    x = torch.randn(1, 3, 224, 224).cuda()
+    with torch.no_grad():
+        out1 = ijepa(x)
+        out2, acts = ijepa.forward_activations(x)
+
+        assert (acts.shape[1] == 32 + 1)
+        assert (torch.allclose(out1, out2, atol=1e-5, rtol=1e-5))
+        print("IJEPAModel test passed!")
