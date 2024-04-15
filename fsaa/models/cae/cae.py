@@ -5,7 +5,7 @@ import gdown
 import torch
 import torch.nn as nn
 
-from fsaa.models.cae.modeling_finetune import VisionTransformer
+from fsaa.models.cae.cae_transformer import VisionTransformer
 from fsaa.models.core import TransformAndModelWrapper
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 
@@ -100,3 +100,23 @@ class CAEModel(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+    def forward_activations(self, x, layer_idxs=None):
+        # Normalizing input
+        x = self.model.transform(x)
+
+        # Forwarding through the model
+        return self.model.model.forward_activations(x, layer_idxs=layer_idxs)
+
+
+if __name__ == "__main__":
+    cae = CAEModel("cae_large_1600ep").eval().cuda()
+    x = torch.randn(1, 3, 224, 224).cuda()
+    with torch.no_grad():
+        out1 = cae(x)
+        out2, acts = cae.forward_activations(x)
+
+        assert (acts.shape[1] == 24 + 1)
+        assert (torch.allclose(out1, out2))
+        print("CAEModel test passed!")
+        print("Activations shape:", acts.shape)
