@@ -6,7 +6,7 @@ import torch.nn as nn
 import wget
 
 from fsaa.models.core import TransformAndModelWrapper
-from fsaa.models.ibot.vits import vit_base, vit_large
+from fsaa.models.ibot.ibot_transformer import vit_base, vit_large
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 
 SUPPORTED_IBOT_MODELS = [
@@ -91,3 +91,23 @@ class iBOTModel(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+    def forward_activations(self, x, layer_idxs=None):
+        # Normalizing input
+        x = self.model.transform(x)
+
+        # Forwarding through the model
+        return self.model.model.forward_activations(x, layer_idxs=layer_idxs)
+
+
+if __name__ == "__main__":
+    ibot = iBOTModel("ibot_vitb_16_pt22k").eval().cuda()
+    x = torch.randn(1, 3, 224, 224).cuda()
+    with torch.no_grad():
+        out1 = ibot(x)
+        out2, acts = ibot.forward_activations(x)
+
+        assert (acts.shape[1] == 12 + 1)
+        assert (torch.allclose(out1, out2))
+        print("iBOTModel test passed!")
+        print("Activations shape:", acts.shape)
