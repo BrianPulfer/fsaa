@@ -577,6 +577,37 @@ class VisionTransformer(nn.Module):
 
         return x
 
+    def forward_activations(self, x, masks=None, layer_idxs=None):
+        if masks is not None:
+            if not isinstance(masks, list):
+                masks = [masks]
+
+        if layer_idxs is None:
+            layer_idxs = [i for i in range(len(self.blocks))]
+
+        # Patch embedding
+        x = self.patch_embed(x)
+
+        pos_embed = self.interpolate_pos_encoding(x, self.pos_embed)
+        x = x + pos_embed
+
+        if masks is not None:
+            x = apply_masks(x, masks)
+
+        acts = [x.clone().detach()]
+        for i, blk in enumerate(self.blocks):
+            x = blk(x)
+
+            if i in layer_idxs:
+                acts.append(x.clone().detach())
+
+        out = acts[-1]
+
+        if self.norm is not None:
+            out = self.norm(out)
+
+        return out, torch.stack(acts, dim=1)
+
     def interpolate_pos_encoding(self, x, pos_embed):
         npatch = x.shape[1] - 1
         N = pos_embed.shape[1] - 1

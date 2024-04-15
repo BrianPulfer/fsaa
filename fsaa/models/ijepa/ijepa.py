@@ -5,7 +5,7 @@ import torch.nn as nn
 import wget
 
 from fsaa.models.core import TransformAndModelWrapper
-from fsaa.models.ijepa.vision_transformer import vit_giant, vit_huge
+from fsaa.models.ijepa.ijepa_transformer import vit_giant, vit_huge
 from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
 
 SUPPORTED_IJEPA_MODELS = [
@@ -77,31 +77,11 @@ class IJEPAModel(nn.Module):
         return self.model(x)
 
     def forward_activations(self, x, layer_idxs=None):
-        transform = self.model.transform
-        ijepa = self.model.model
-
         # Normalizing input
-        x = transform(x)
+        x = self.model.transform(x)
 
-        # Patch embedding
-        x = ijepa.patch_embed(x)
-
-        pos_embed = ijepa.interpolate_pos_encoding(x, ijepa.pos_embed)
-        x = x + pos_embed
-
-        acts = [x]
-        for i, blk in enumerate(ijepa.blocks):
-            x = blk(x)
-
-            if i in layer_idxs or layer_idxs is None:
-                acts.append(x.clone().detach())
-
-        out = acts[-1]
-
-        if ijepa.norm is not None:
-            out = ijepa.norm(out)
-
-        return out, torch.stack(acts, dim=1)
+        # Forwarding through the model
+        return self.model.model.forward_activations(x, layer_idxs=layer_idxs)
 
 
 if __name__ == "__main__":
@@ -112,5 +92,6 @@ if __name__ == "__main__":
         out2, acts = ijepa.forward_activations(x)
 
         assert (acts.shape[1] == 32 + 1)
-        assert (torch.allclose(out1, out2, atol=1e-5, rtol=1e-5))
+        assert (torch.allclose(out1, out2))
         print("IJEPAModel test passed!")
+        print("Activations shape:", acts.shape)
