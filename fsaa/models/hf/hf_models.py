@@ -9,7 +9,7 @@ from fsaa.transforms.normalize import (IMAGENET_INCEPTION_MEAN,
 
 SUPPORTED_BEIT_MODELS = [
     "microsoft/beit-base-patch16-224-pt22k",
-    "microsoft/beit-large-patch16-224-pt22k"
+    "microsoft/beit-large-patch16-224-pt22k",
 ]
 
 SUPPORTED_DINO_MODELS = [
@@ -26,7 +26,7 @@ SUPPORTED_MAE_MODELS = [
 SUPPORTED_MSN_MODELS = [
     "facebook/vit-msn-small",
     "facebook/vit-msn-base",
-    "facebook/vit-msn-large"
+    "facebook/vit-msn-large",
 ]
 
 SUPPORTED_HF_MODELS = (
@@ -75,8 +75,7 @@ class HFModel(Module):
             mean, std = IMAGENET_MEAN, IMAGENET_STD
 
         self.model = TransformAndModelWrapper(
-            hf_model, transform=Normalize(mean, std)
-        )
+            hf_model, transform=Normalize(mean, std))
 
     def forward(self, x):
         """Runs the given batch through the model to extract features."""
@@ -86,19 +85,53 @@ class HFModel(Module):
         # Sorting tokens in hidden state for MAE models
         if self.model_name in SUPPORTED_MAE_MODELS:
             d = hidden_state.shape[-1]
-            ids = out['ids_restore']
+            ids = out["ids_restore"]
             ids = ids.unsqueeze(-1).expand(-1, -1, d)
 
             hidden_state = torch.cat(
                 [
                     hidden_state[:, 0].unsqueeze(1),
-                    torch.gather(
-                        hidden_state[:, 1:],
-                        dim=1,
-                        index=ids
-                    )
+                    torch.gather(hidden_state[:, 1:], dim=1, index=ids),
                 ],
-                dim=1
+                dim=1,
             )
 
         return hidden_state
+
+    def forward_activations(self, x, layer_idxs=None):
+        """Runs the given batch through the model to extract features."""
+        if layer_idxs is None:
+            layer_idxs = list(range(self.model.model.config.num_hidden_layers))
+
+        x = self.model.transform(x)
+        out = self.model.model(x, output_hidden_states=True)
+        hidden_state = out["last_hidden_state"]
+        acts = torch.stack(out["hidden_states"], dim=1)
+
+        # Sorting tokens in hidden state for MAE models
+        if self.model_name in SUPPORTED_MAE_MODELS:
+            d = hidden_state.shape[-1]
+            ids = out["ids_restore"]
+            ids = ids.unsqueeze(-1).expand(-1, -1, d)
+
+            hidden_state = torch.cat(
+                [
+                    hidden_state[:, 0].unsqueeze(1),
+                    torch.gather(hidden_state[:, 1:], dim=1, index=ids),
+                ],
+                dim=1,
+            )
+
+        return hidden_state, acts
+
+
+if __name__ == "__main__":
+    for name in SUPPORTED_HF_MODELS:
+        hf_model = HFModel(name).eval().cuda()
+        x = torch.randn(1, 3, 224, 224).cuda()
+        with torch.no_grad():
+            out1 = hf_model(x)
+            out2, acts = hf_model.forward_activations(x)
+            print(name, out2.shape, acts.shape)
+            assert torch.allclose(out1, out2, atol=1e-4)
+    print("HFModel test passed!")
