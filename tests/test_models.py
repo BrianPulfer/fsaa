@@ -60,4 +60,5 @@ def test_hf_processing_same(image_device):
             image, return_tensors="pt"
         ).pixel_values.to(device)
 
-        assert torch.allclose(processed, original_processed, atol=1e-4), f"Processing is different for {name}"
+        assert torch.allclose(processed, original_processed,
+                              atol=1e-4), f"Processing is different for {name}"
