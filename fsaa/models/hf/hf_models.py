@@ -1,7 +1,7 @@
 import torch
 from torch.nn import Module
-from transformers import AutoModel, logging
 from torchvision.transforms import CenterCrop, Resize
+from transformers import AutoModel, logging
 
 from fsaa.models.core import TransformAndModelWrapper
 from fsaa.transforms.compose import Compose
@@ -83,9 +83,10 @@ class HFModel(Module):
             mean, std = IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
         else:
             mean, std = IMAGENET_MEAN, IMAGENET_STD
-            
+
         normalize = Normalize(mean, std)
-        transform = normalize if model_name not in SUPPORTED_DINOV2_MODELS else Compose([Resize(256), CenterCrop(224), normalize])
+        transform = normalize if model_name not in SUPPORTED_DINOV2_MODELS else Compose(
+            [Resize(256), CenterCrop(224), normalize])
 
         self.model = TransformAndModelWrapper(
             hf_model, transform=transform)
@@ -143,17 +144,17 @@ if __name__ == "__main__":
     from PIL import Image
     from torchvision.transforms import ToTensor
     from transformers import AutoImageProcessor
-    
+
     # name = 'facebook/dinov2-small'
     name = 'facebook/vit-mae-base'
-    
+
     url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
     x = Image.open(r.get(url, stream=True).raw).resize((224, 224))
-    
+
     processor = AutoImageProcessor.from_pretrained(name)
     y = processor(x, return_tensors='pt')['pixel_values']
-    
+
     model = HFModel(name)
     y_hat = model.model.transform(ToTensor()(x))
-    
+
     print(torch.allclose(y, y_hat, atol=1e-4))
