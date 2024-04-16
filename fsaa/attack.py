@@ -30,6 +30,7 @@ def attack(
     image_range: List[tuple] = DEFAULT_IMAGE_RANGE,
     pbar: bool = True,
     device: torch.device = None,
+    verbose: bool = False
 ) -> Tensor:
     """
     Performs adversarial attack on the given model.
@@ -98,13 +99,16 @@ def attack(
         i_loss = 0 if ilw == 0 else ilw * image_loss(x_adv, x)
         f_loss = 0 if flw == 0 else flw * feature_loss(features, labels)
 
-        if i_loss.ndim > 1:
+        if isinstance(i_loss, Tensor) and i_loss.ndim > 1:
             i_loss = i_loss.mean(dim=list(range(1, i_loss.ndim)))
 
-        if f_loss.ndim > 1:
+        if isinstance(f_loss, Tensor) and f_loss.ndim > 1:
             f_loss = f_loss.mean(dim=list(range(1, f_loss.ndim)))
 
         loss = f_loss + i_loss
+
+        if verbose:
+            print(f"Step {step + 1}/{steps}: Loss {loss.mean().item():.4f} - Image Loss {i_loss.mean().item():.4f} - Feature Loss {f_loss.mean().item():.4f}")
 
         # Storing best perturbation
         update_best = torch.bitwise_and(
