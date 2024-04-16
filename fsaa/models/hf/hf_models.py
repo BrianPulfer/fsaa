@@ -1,8 +1,10 @@
 import torch
 from torch.nn import Module
 from transformers import AutoModel, logging
+from torchvision.transforms import CenterCrop, Resize
 
 from fsaa.models.core import TransformAndModelWrapper
+from fsaa.transforms.compose import Compose
 from fsaa.transforms.normalize import (IMAGENET_INCEPTION_MEAN,
                                        IMAGENET_INCEPTION_STD, IMAGENET_MEAN,
                                        IMAGENET_STD, Normalize)
@@ -15,6 +17,13 @@ SUPPORTED_BEIT_MODELS = [
 SUPPORTED_DINO_MODELS = [
     "facebook/dino-vits16",
     "facebook/dino-vitb16",
+]
+
+SUPPORTED_DINOV2_MODELS = [
+    "facebook/dinov2-small",
+    "facebook/dinov2-base",
+    "facebook/dinov2-large",
+    "facebook/dinov2-giant",
 ]
 
 SUPPORTED_MAE_MODELS = [
@@ -32,6 +41,7 @@ SUPPORTED_MSN_MODELS = [
 SUPPORTED_HF_MODELS = (
     SUPPORTED_BEIT_MODELS
     + SUPPORTED_DINO_MODELS
+    + SUPPORTED_DINOV2_MODELS
     + SUPPORTED_MAE_MODELS
     + SUPPORTED_MSN_MODELS
 )
@@ -73,9 +83,12 @@ class HFModel(Module):
             mean, std = IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
         else:
             mean, std = IMAGENET_MEAN, IMAGENET_STD
+            
+        normalize = Normalize(mean, std)
+        transform = normalize if model_name not in SUPPORTED_DINOV2_MODELS else Compose([Resize(256), CenterCrop(224), normalize])
 
         self.model = TransformAndModelWrapper(
-            hf_model, transform=Normalize(mean, std))
+            hf_model, transform=transform)
 
     def forward(self, x):
         """Runs the given batch through the model to extract features."""
@@ -126,12 +139,21 @@ class HFModel(Module):
 
 
 if __name__ == "__main__":
-    for name in SUPPORTED_HF_MODELS:
-        hf_model = HFModel(name).eval().cuda()
-        x = torch.randn(1, 3, 224, 224).cuda()
-        with torch.no_grad():
-            out1 = hf_model(x)
-            out2, acts = hf_model.forward_activations(x)
-            print(name, out2.shape, acts.shape)
-            assert torch.allclose(out1, out2, atol=1e-4)
-    print("HFModel test passed!")
+    import requests as r
+    from PIL import Image
+    from torchvision.transforms import ToTensor
+    from transformers import AutoImageProcessor
+    
+    # name = 'facebook/dinov2-small'
+    name = 'facebook/vit-mae-base'
+    
+    url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
+    x = Image.open(r.get(url, stream=True).raw).resize((224, 224))
+    
+    processor = AutoImageProcessor.from_pretrained(name)
+    y = processor(x, return_tensors='pt')['pixel_values']
+    
+    model = HFModel(name)
+    y_hat = model.model.transform(ToTensor()(x))
+    
+    print(torch.allclose(y, y_hat, atol=1e-4))

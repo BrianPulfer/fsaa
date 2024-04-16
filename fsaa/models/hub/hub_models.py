@@ -8,13 +8,6 @@ SUPPORTED_BARLOWTWINS_MODELS = [
     "barlowtwins_resnet50",
 ]
 
-SUPPORTED_DINOV2_MODELS = [
-    "dinov2_vits14",
-    "dinov2_vitb14",
-    "dinov2_vitl14",
-    "dinov2_vitg14",
-]
-
 SUPPORTED_SWAV_MODELS = [
     "swav_resnet50",
     "swav_resnet50w2",
@@ -30,7 +23,6 @@ SUPPORTED_VICREG_MODELS = [
 
 SUPPORTED_HUB_MODELS = (
     SUPPORTED_BARLOWTWINS_MODELS +
-    SUPPORTED_DINOV2_MODELS +
     SUPPORTED_SWAV_MODELS +
     SUPPORTED_VICREG_MODELS
 )
@@ -60,11 +52,6 @@ class HubModel(Module):
                                        model_name.split("_")[1],
                                        verbose=False)
 
-        if model_name in SUPPORTED_DINOV2_MODELS:
-            hub_model = torch.hub.load("facebookresearch/dinov2",
-                                       model_name,
-                                       verbose=False)
-
         if model_name in SUPPORTED_SWAV_MODELS:
             hub_model = torch.hub.load("facebookresearch/swav:main",
                                        model_name.split("_")[1],
@@ -85,8 +72,4 @@ class HubModel(Module):
         )
 
     def forward(self, x):
-        if self.model_name in SUPPORTED_DINOV2_MODELS:
-            x = self.model.transform(x)
-            out = self.model.model.forward_features(x)["x_prenorm"]
-            return out
         return self.model(x)
