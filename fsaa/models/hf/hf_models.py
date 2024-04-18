@@ -1,13 +1,6 @@
 import torch
 from torch.nn import Module
-from torchvision.transforms import CenterCrop, Resize
 from transformers import AutoModel, logging
-
-from fsaa.models.core import TransformAndModelWrapper
-from fsaa.transforms.compose import Compose
-from fsaa.transforms.normalize import (IMAGENET_INCEPTION_MEAN,
-                                       IMAGENET_INCEPTION_STD, IMAGENET_MEAN,
-                                       IMAGENET_STD, Normalize)
 
 SUPPORTED_BEIT_MODELS = [
     "microsoft/beit-base-patch16-224-pt22k",
@@ -59,37 +52,29 @@ def name_to_model(model_name: str):
     return model
 
 
-class HFModel(Module):
+def load_hf_model(model_name, *args, **kwargs):
+    return HFModelWrapper(model_name, *args, **kwargs)
+
+
+class HFModelWrapper(Module):
     """
-    Base class for all models from HuggingFace.
-    Models are wrapped with corresponding pre-processing normalization.
+    Base class for all models from HuggingFace. Hidden states are extracted by default.
 
     Args:
         model_name (str): Name of the model to be used.
     """
 
     def __init__(self, model_name, *args, **kwargs):
-        super(HFModel, self).__init__()
+        super(HFModelWrapper, self).__init__()
+        self.model_name = model_name
+
         if model_name not in SUPPORTED_HF_MODELS:
             raise ValueError(
                 f"Model '{model_name}' is not supported. \
-                Pick one of {SUPPORTED_BEIT_MODELS}"
+                Pick one of {SUPPORTED_HF_MODELS}"
             )
 
-        self.model_name = model_name
-        hf_model = name_to_model(model_name)
-
-        if model_name in SUPPORTED_BEIT_MODELS:
-            mean, std = IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
-        else:
-            mean, std = IMAGENET_MEAN, IMAGENET_STD
-
-        normalize = Normalize(mean, std)
-        transform = normalize if model_name not in SUPPORTED_DINOV2_MODELS else Compose(
-            [Resize(256), CenterCrop(224), normalize])
-
-        self.model = TransformAndModelWrapper(
-            hf_model, transform=transform)
+        self.model = name_to_model(model_name)
 
     def forward(self, x):
         """Runs the given batch through the model to extract features."""
@@ -115,10 +100,9 @@ class HFModel(Module):
     def forward_activations(self, x, layer_idxs=None):
         """Runs the given batch through the model to extract features."""
         if layer_idxs is None:
-            layer_idxs = list(range(self.model.model.config.num_hidden_layers))
+            layer_idxs = list(range(self.model.config.num_hidden_layers))
 
-        x = self.model.transform(x)
-        out = self.model.model(x, output_hidden_states=True)
+        out = self.model(x, output_hidden_states=True)
         hidden_state = out["last_hidden_state"]
         acts = torch.stack(out["hidden_states"], dim=1)
 
@@ -146,15 +130,15 @@ if __name__ == "__main__":
     from transformers import AutoImageProcessor
 
     # name = 'facebook/dinov2-small'
-    name = 'facebook/vit-mae-base'
+    name = "facebook/vit-mae-base"
 
-    url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
+    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
     x = Image.open(r.get(url, stream=True).raw).resize((224, 224))
 
     processor = AutoImageProcessor.from_pretrained(name)
-    y = processor(x, return_tensors='pt')['pixel_values']
+    y = processor(x, return_tensors="pt")["pixel_values"]
 
-    model = HFModel(name)
+    model = HFModelWrapper(name)
     y_hat = model.model.transform(ToTensor()(x))
 
     print(torch.allclose(y, y_hat, atol=1e-4))
