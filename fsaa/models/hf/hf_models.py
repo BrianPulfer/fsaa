@@ -121,24 +121,3 @@ class HFModelWrapper(Module):
             )
 
         return hidden_state, acts
-
-
-if __name__ == "__main__":
-    import requests as r
-    from PIL import Image
-    from torchvision.transforms import ToTensor
-    from transformers import AutoImageProcessor
-
-    # name = 'facebook/dinov2-small'
-    name = "facebook/vit-mae-base"
-
-    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    x = Image.open(r.get(url, stream=True).raw).resize((224, 224))
-
-    processor = AutoImageProcessor.from_pretrained(name)
-    y = processor(x, return_tensors="pt")["pixel_values"]
-
-    model = HFModelWrapper(name)
-    y_hat = model.model.transform(ToTensor()(x))
-
-    print(torch.allclose(y, y_hat, atol=1e-4))

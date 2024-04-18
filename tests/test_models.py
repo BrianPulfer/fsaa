@@ -59,6 +59,11 @@ def test_hf_processing_same(image_device):
         processed = get_default_transform(name)(tensor)
 
         original_processor = AutoImageProcessor.from_pretrained(name)
+
+        if hasattr(original_processor, "do_center_crop"):
+            original_processor.do_center_crop = False
+            original_processor.do_resize = False
+
         original_processed = original_processor(
             image, return_tensors="pt").pixel_values
 

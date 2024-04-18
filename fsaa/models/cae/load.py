@@ -83,16 +83,3 @@ def load_cae_model(model_name, cache_dir="~/.cache/fsaa/models/cae", *args, **kw
     cae.load_state_dict(state_dict, strict=True)
 
     return cae
-
-
-if __name__ == "__main__":
-    cae = load_cae_model("cae_large_1600ep").eval().cuda()
-    x = torch.randn(1, 3, 224, 224).cuda()
-    with torch.no_grad():
-        out1 = cae(x)
-        out2, acts = cae.forward_activations(x)
-
-        assert acts.shape[1] == 24 + 1
-        assert torch.allclose(out1, out2)
-        print("CAEModel test passed!")
-        print("Activations shape:", acts.shape)

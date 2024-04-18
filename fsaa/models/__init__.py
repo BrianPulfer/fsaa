@@ -1,6 +1,5 @@
 from torch.nn import Module
 from torchvision.transforms import Normalize
-from transformers import AutoImageProcessor
 
 from .cae.load import SUPPORTED_CAE_MODELS, load_cae_model
 from .hf.hf_models import (SUPPORTED_BEIT_MODELS, SUPPORTED_HF_MODELS,
@@ -70,11 +69,4 @@ def get_model(model_name: str, *args, **kwargs) -> Module:
 def get_default_transform(model_name):
     if model_name in SUPPORTED_BEIT_MODELS:
         return Normalize(IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD)
-
-    if model_name in SUPPORTED_HF_MODELS:
-        processor = AutoImageProcessor.from_pretrained(model_name)
-        return lambda tensor: processor(tensor, return_tensors="pt", do_rescale=False)[
-            "pixel_values"
-        ]
-
     return Normalize(IMAGENET_MEAN, IMAGENET_STD)
