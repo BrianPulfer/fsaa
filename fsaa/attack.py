@@ -1,140 +1,199 @@
-from typing import List
+from typing import Callable
 from warnings import warn
 
 import torch
-from torch import Tensor
-from torch.nn import Module
+import torch.nn as nn
+from torchvision.transforms import ToPILImage, ToTensor
 from tqdm.auto import tqdm
 
-from fsaa.core import (PerceptualMask, PerturbationInitializer,
-                       PerturbationUpdater)
-from fsaa.initializers.random import RandomInitializer
-from fsaa.losses.mse_loss import MeanSquaredErrorLoss
-from fsaa.transforms.normalize import DEFAULT_IMAGE_RANGE
-from fsaa.updaters.pgd import PGDUpdater
+from fsaa.optimizers.pgd import PGDOptimizer
+
+
+def to_valid_image(image: torch.Tensor) -> torch.Tensor:
+    to_pil = ToPILImage()
+    to_tensor = ToTensor()
+
+    image = torch.clamp(image, 0, 1).clone().detach().cpu()
+    return to_tensor(to_pil(image))
+
+
+def reduce_loss(loss: torch.Tensor) -> torch.Tensor:
+    if loss.ndim > 1:
+        return loss.mean(dim=list(range(1, loss.dim())))
+    return loss
 
 
 def attack(
-    model: Module,
-    x: Tensor,
-    labels: Tensor = None,
+    model: nn.Module,
+    images: torch.Tensor,
+    transform: Callable,
+    target: torch.Tensor = None,
     steps: int = 1,
-    initializer: PerturbationInitializer = RandomInitializer(),
-    updater: PerturbationUpdater = PGDUpdater(),
-    image_loss: Module = MeanSquaredErrorLoss(),
-    feature_loss: Module = MeanSquaredErrorLoss(),
-    ilw: float = 1.0,
-    flw: float = -1.0,
-    perceptual_mask: PerceptualMask = None,
-    max_img_loss: float = float("inf"),
-    image_range: List[tuple] = DEFAULT_IMAGE_RANGE,
-    pbar: bool = True,
+    optimizer_fn: torch.optim.Optimizer = PGDOptimizer,
+    optimizer_kwargs: dict = {"lr": 1e-4},
+    scheduler_fn: torch.optim.lr_scheduler.LRScheduler = None,
+    scheduler_kwargs: dict = {},
+    image_loss: nn.Module = torch.nn.MSELoss(reduction="none"),
+    feature_loss: nn.Module = torch.nn.CosineSimilarity(dim=-1),
+    ilw: float = 0.0,
+    flw: float = 1.0,
+    initial_noise_scale: float = 2 / 255,
+    max_img_mse: float = float("inf"),
+    pbar: bool = False,
+    do_flatten_features: bool = False,
     device: torch.device = None,
-    verbose: bool = False
-) -> Tensor:
+) -> torch.Tensor:
     """
     Performs adversarial attack on the given model.
 
-
     Args:
-        model (Module): Model to attack.
-        x (Tensor): Batch of images to attack.
-        labels (Tensor): Labels of the batch of images in feature space.
-        steps (int): Number of steps to perform.
-        initializer (PerturbationInitializer): Initializer of the perturbation.
-        updater (PerturbationUpdate): Updater of the perturbation.
-        image_loss (Module): Image loss function.
-        feature_loss (Module): Feature loss function.
-        ilw (float): Weight of the image loss.
-        flw (float): Weight of the feature loss.
-        perceptual_mask (PerceptualMask): Mask to apply to the gradient.
-        max_img_loss (float): Maximum image loss allowed (without weighting).
-        image_range (List[tuple]): Image range to clamp the perturbation channel-wise.
-        pbar (bool): Whether to show a progress bar.
-        device (torch.device): Device to use.
+
     """
-    # Set model to eval mode
-    model = model.eval()
 
-    # Initialize perturbation and feature labels
-    device = x.device if device is None else device
-    x = x.detach().clone().to(device)
-    x_adv = initializer(x).detach().clone()
+    # Sanity checks
+    assert isinstance(
+        images, torch.Tensor
+    ), "Input images must be a torch.Tensor. Use ToTensor transform to convert PIL image to torch.Tensor."
+    assert (
+        images.min() >= 0 and images.max() <= 1
+    ), "Input image must be in range [0, 1]. Pass the transform as an argument to convert the image to the correct range."
 
-    def clamp_in_range(x, image_range):
-        return x.permute(0, 2, 3, 1).clamp(image_range[0], image_range[1]).permute(0, 3, 1, 2)
+    if model.training:
+        warn("Attacking model which is in training mode.")
 
-    if image_range is not None:
-        assert image_range.shape == (
-            2, 3), "Image range should be channel-wise."
-        image_range = image_range.to(device)
-        x_adv = clamp_in_range(x_adv, image_range)
+    # Moving model to device
+    device = images.device if device is None else device
+    model = model.to(device)
 
-    # Copy labels and detach from graph
-    if labels is None:
+    # Initializing adversarial images
+    images = images.to(device)
+    images_adv = (
+        (images + torch.randn_like(images) * initial_noise_scale)
+        .clamp(0, 1)
+        .to(device)
+        .clone()
+        .detach()
+        .requires_grad_(True)
+    )
+
+    # Initializing optimizer and scheduler
+    optim = optimizer_fn([images_adv], **optimizer_kwargs)
+    scheduler = (
+        None if scheduler_fn is None else scheduler_fn(
+            optim, **scheduler_kwargs)
+    )
+
+    if target is None:
         with torch.no_grad():
-            labels = model(x)
-    labels = labels.detach().clone().to(device)
+            target = model(transform(images))
+            if do_flatten_features:
+                target = target.flatten(start_dim=1)
 
-    # Moving losses to device
-    image_loss = image_loss.to(device)
-    feature_loss = feature_loss.to(device)
+    pbar = tqdm(range(steps)) if pbar else range(steps)
+    best_losses = torch.ones(images.size(0), device=device) * float("inf")
+    best_images_adv = images_adv.clone().detach()
+    for _ in pbar:
+        pred = model(transform(images_adv))
+        if do_flatten_features:
+            pred = pred.flatten(start_dim=1)
 
-    # Getting the mask
-    mask = None if perceptual_mask is None else perceptual_mask(x).detach()
-    if mask is not None:
-        assert 0 <= mask.min() and mask.max() <= 1, "Mask should be between 0 and 1."
+        f_loss = reduce_loss(feature_loss(pred, target))
+        losses = flw * f_loss
 
-    # Performing attack
-    best_loss = torch.tensor([float("inf")] * len(x)).to(device)
-    best_adv = x_adv.detach().clone()
-    bar = range(steps) if not pbar else tqdm(
-        range(steps), desc="Attack", leave=False)
-    for step in bar:
-        # Getting feature representation
-        x_adv.requires_grad = True
-        features = model(x_adv)
+        if ilw is not None and ilw != 0:
+            i_loss = reduce_loss(image_loss(images_adv, images))
+            losses += ilw * i_loss
 
-        # Computing the gradient w.r.t loss
-        i_loss = 0 if ilw == 0 else ilw * image_loss(x_adv, x)
-        f_loss = 0 if flw == 0 else flw * feature_loss(features, labels)
+        loss = losses.mean()
 
-        if isinstance(i_loss, Tensor) and i_loss.ndim > 1:
-            i_loss = i_loss.mean(dim=list(range(1, i_loss.ndim)))
+        optim.zero_grad()
+        loss.backward()
+        optim.step()
 
-        if isinstance(f_loss, Tensor) and f_loss.ndim > 1:
-            f_loss = f_loss.mean(dim=list(range(1, f_loss.ndim)))
+        if scheduler is not None:
+            scheduler.step()
 
-        loss = f_loss + i_loss
+        # Keeping image in bounds
+        images_adv.data = torch.clamp(images_adv.data, 0, 1)
 
-        if verbose:
-            print(f"Step {step + 1}/{steps}: Loss {loss.mean().item():.4f} - Image Loss {i_loss.mean().item():.4f} - Feature Loss {f_loss.mean().item():.4f}")
+        # Updating best adversarial images
+        if max_img_mse < float("inf"):
+            mse = (images - images_adv).pow(2).mean(dim=list(range(1, images.dim())))
 
-        # Storing best perturbation
-        update_best = torch.bitwise_and(
-            loss < best_loss, ilw == 0 or i_loss / ilw <= max_img_loss
-        )
-        best_loss[update_best] = loss[update_best].detach()
-        best_adv[update_best] = x_adv[update_best].detach().clone()
+            has_budget = mse < max_img_mse
+            improved = losses < best_losses
 
-        grad = torch.autograd.grad(loss.mean(), x_adv)[0]
+            if torch.all(torch.logical_not(has_budget)):
+                warn("Stopping attack as max_img_mse is reached for all images.")
+                break
 
-        if torch.all(grad == 0):
-            warn("Gradient is zero. Stopping attack.")
-            break
+            update_mask = torch.logical_and(has_budget, improved)
+            best_losses[update_mask] = losses[update_mask]
+            best_images_adv[update_mask] = images_adv[update_mask].clone(
+            ).detach()
 
-        # Updating perturbation
-        x_adv_new = updater(x_adv.detach(), grad, step, steps, loss)
+    # Converting to valid images
+    best_images_adv = torch.stack([to_valid_image(img) for img in best_images_adv]).to(
+        device
+    )
+    return best_images_adv
 
-        # Masking the update to be less perceptible
-        if mask is not None:
-            update = (x_adv_new - x_adv).detach()
-            x_adv_new = x_adv.detach() + update * mask
 
-        # Clamping to image range
-        if image_range is not None:
-            x_adv_new = clamp_in_range(x_adv_new, image_range)
+if __name__ == "__main__":
+    import requests as r
+    from PIL import Image
 
-        x_adv = x_adv_new.detach()
+    from fsaa.models import get_default_transform, get_model
 
-    return best_adv
+    torch.random.manual_seed(1)
+
+    # Getting device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Getting model and transform
+    name = "facebook/dinov2-large"
+    model = get_model(name).to(device).eval()
+    transform = get_default_transform(name)
+
+    # Getting data
+    urls = [
+        "http://images.cocodataset.org/val2017/000000039769.jpg",
+        "https://farm2.staticflickr.com/1206/1434916947_825c74b04a_z.jpg",
+    ]
+
+    images = [
+        Image.open(r.get(url, stream=True).raw).convert(
+            "RGB").resize((224, 224))
+        for url in urls
+    ]
+    totensor = ToTensor()
+    batch = torch.stack([totensor(img) for img in images]).to(device)
+    adv_batch = attack(
+        model,
+        batch,
+        transform,
+        steps=350,
+        max_img_mse=1e-4,
+        pbar=True,
+        scheduler_fn=torch.optim.lr_scheduler.CosineAnnealingLR,
+        scheduler_kwargs={"T_max": 350},
+        do_flatten_features=True,
+    )
+
+    with torch.no_grad():
+        y1 = model(transform(batch))
+        y2 = model(transform(adv_batch))
+
+        mses = reduce_loss(
+            torch.nn.functional.mse_loss(batch, adv_batch, reduction="none")
+        ).cpu()
+
+        cossims = reduce_loss(
+            torch.nn.functional.cosine_similarity(
+                y1.flatten(1), y2.flatten(1), dim=-1)
+        ).cpu()
+
+        for idx, (m, c) in enumerate(zip(mses, cossims)):
+            print(
+                f"Image {idx+1}\tMSE: {m.item():.4f}, Cosine Similarity: {c.item():.4f}"
+            )
