@@ -20,94 +20,51 @@ pip install fsaa
 ___
 
 ## Usage example
-Here's a generic (and quite complete) [example](fsaa/examples/tutorial_normalizing_model.py) on how to use FSAA:
-
 ```python
 import requests as r
-import torch
-import torch.nn as nn
 from PIL import Image
-from torchvision.models.resnet import resnet18
-from torchvision.transforms import Compose, CenterCrop, Resize, ToTensor
+import torch
+from torchvision.transforms import ToTensor
 
-from fsaa.attack import TransformAndModelWrapper, attack
-from fsaa.masks.jnd import JNDMask
-from fsaa.transforms.normalize import IMAGENET_MEAN, IMAGENET_STD, Normalize
-from fsaa.utils import get_initializer, get_loss, get_updater
+from fsaa import attack
+from fsaa.models import get_default_transform, get_model
 
-# Reproducibility
-torch.manual_seed(0)
-
-# Device
+# Getting device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Model to be attacked
-# Note: we backprop all the way before pre-processing!
-model = resnet18(weights="ResNet18_Weights.IMAGENET1K_V1")
-model = TransformAndModelWrapper(
-    model,
-    Normalize(
-        mean=IMAGENET_MEAN,
-        std=IMAGENET_STD
-    )
-).to(device).eval()
+# Getting model and transform
+name = "facebook/dinov2-large"
+model = get_model(name).to(device).eval()
+transform = get_default_transform(name)
 
-# Batch of data
-# No normalization is needed
+# Getting data
 url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-image = Image.open(r.get(url, stream=True).raw)
-transform = Compose([
-    Resize(224),
-    CenterCrop(224),
-    ToTensor()
-])
-batch = transform(image).unsqueeze(0).to(device)
+image = Image.open(r.get(url, stream=True).raw).convert("RGB").resize((224, 224))
+batch = ToTensor()(image).unsqueeze(0).to(device)
 
-# Label for the attack
-features = model(batch).detach()
-
-# Attacking the batch
+# Computing attack
 adv_batch = attack(
     model,
     batch,
-    labels=features,
+    transform,
     steps=350,
-    initializer=get_initializer("Random", 4e-4),
-    updater=get_updater("PGD", 4e-4),
-    image_loss=get_loss("MSE"),
-    feature_loss=get_loss("CosSim"),
-    ilw=1,  # Minimize MSE in image space
-    flw=1,  # Minimize Cosine Similarity in feature space
-    perceptual_mask=JNDMask(),
-    max_img_loss=0.001,  # Maximum MSE in image space
-    device=device,
+    max_img_mse=1e-4,
+    pbar=True,
+    scheduler_fn=torch.optim.lr_scheduler.CosineAnnealingLR,
+    scheduler_kwargs={"T_max": 350},
+    do_flatten_features=True,
 )
 
-# Comparing image and feature distortions
 with torch.no_grad():
-    adv_features = model(adv_batch)
+    y1 = model(transform(batch))
+    y2 = model(transform(adv_batch))
 
-cossim = nn.CosineSimilarity()(features, adv_features).item()
-mse = (batch - adv_batch).pow(2).mean().item()
-print(f"Cosine Similarity in feature space: {cossim:.4f}")
-print(f"MSE in image space: {mse:.4f}")
+cossim = torch.nn.functional.cosine_similarity(y1.flatten(1), y2.flatten(1), dim=-1)
+
+print(f"Cosine Similarity: {cossim.item():.4f}")
 ```
-Which results in an **image MSE of 0.0003**, a **feature Cosine Similarity of -0.8494**, and the following corruption:
 
-<center>
-
-| Original | Corrupted | JND Mask |
-| :------: | :-------: | :------: |
-| <img src="assets/orig.png" width="300px" /> | <img src="assets/adv.png" width="300px" /> | <img src="assets/mask.png" width="300px" />|
-
-</center>
-
-The library also comes with support for pre-trained SSL models from huggingface and other repositories:
-```python
-from fsaa.utils import get_model, SUPPORTED_MODELS
-
-model = get_model("microsoft/beit-base-patch16-224").eval().to(device)
-```
+Please refer to the [tutorial notebook](./notebooks/tutorial.ipynb) for a more detailed explanation.
 ___
 
 ## Contributing
@@ -121,18 +78,12 @@ ___
 If you used this library as part of your work, please cite the repository as follows:
 
 ```bibtex
-@software{Pulfer_FSAA_2023,
+@software{Pulfer_FSAA_2024,
 author = {Pulfer, Brian},
-month = August
+month = April
 title = {{FSAA}},
 url = {https://github.com/BrianPulfer/fsaa},
-version = {0.0.1},
-year = {2023}
+version = {0.0.2},
+year = {2024}
 }
 ```
-___
-
-## Acknowledgements
-Part of the code was taken and adapted from the following repositories:
-  - [facebookresearch/active_indexing](https://github.com/facebookresearch/active_indexing)
-    - JND masking
