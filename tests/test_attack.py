@@ -1,43 +1,61 @@
-import pytest
+import requests as r
 import torch
-from accelerate import Accelerator
-from torchvision.models.resnet import resnet18
+from PIL import Image
+from torchvision.transforms import ToTensor
 
-from fsaa.attack import attack
-from fsaa.initializers.random import RandomInitializer
-from fsaa.losses.mse_loss import MeanSquaredErrorLoss
-from fsaa.updaters.pgd import PGDUpdater
+from fsaa import attack
+from fsaa.models import get_default_transform, get_model
 
 
-@pytest.fixture
-def model_and_data():
-    # Device
-    device = Accelerator().device
+def test_attack():
+    torch.random.manual_seed(1)
 
-    # Data
-    B, C, H, W = 1, 3, 224, 224
-    x = torch.randn(B, C, H, W).clamp(0, 1).to(device)
+    # Getting device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    return resnet18().eval().to(device), x
+    # Getting model and transform
+    name = "facebook/dinov2-small"
+    model = get_model(name).to(device).eval()
+    transform = get_default_transform(name)
 
+    # Getting data
+    urls = [
+        "http://images.cocodataset.org/val2017/000000039769.jpg",
+        "https://farm2.staticflickr.com/1206/1434916947_825c74b04a_z.jpg",
+    ]
 
-def test_attacks(model_and_data):
-    """Tests that the all initializers return a perturbation"""
-    model, x = model_and_data
-    labels = model(x)
-    perturbation = attack(
+    images = [
+        Image.open(r.get(url, stream=True).raw).convert(
+            "RGB").resize((224, 224))
+        for url in urls
+    ]
+    totensor = ToTensor()
+    batch = torch.stack([totensor(img) for img in images]).to(device)
+    adv_batch = attack(
         model,
-        x,
-        labels,
-        1,
-        RandomInitializer(),
-        PGDUpdater(),
-        MeanSquaredErrorLoss(),
-        MeanSquaredErrorLoss(),
-        0.0,
-        -1.0,
+        batch,
+        transform,
+        steps=3,
+        max_img_mse=1e-4,
+        pbar=True,
+        scheduler_fn=torch.optim.lr_scheduler.CosineAnnealingLR,
+        scheduler_kwargs={"T_max": 3},
+        do_flatten_features=True,
     )
 
-    assert perturbation.shape == x.shape
-    assert perturbation.device == x.device
-    assert not torch.allclose(perturbation, x)
+    with torch.no_grad():
+        y1 = model(transform(batch))
+        y2 = model(transform(adv_batch))
+
+        mses = (
+            torch.nn.functional.mse_loss(batch, adv_batch, reduction="none")
+            .mean(dim=(1, 2, 3))
+            .cpu()
+        )
+
+        cossims = torch.nn.functional.cosine_similarity(
+            y1.flatten(1), y2.flatten(1), dim=-1
+        ).cpu()
+
+    assert (mses < 1e-4).all(), "Mean squared error is higher than desired"
+    assert (cossims < 1).all(), "Cosine similarity is not improving"
