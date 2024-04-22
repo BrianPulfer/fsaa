@@ -1,14 +1,29 @@
+from typing import Any, Callable, Dict, Iterable, Optional, Union
+
 import torch
 
 
-# PGD-like Optimizer
 class PGDOptimizer(torch.optim.Optimizer):
-    def __init__(self, params, lr=2 / 255, epsilon=8 / 255):
+    """PGD-like optimizer. Updates parameters by adding the sign of the gradient multiplied by the learning rate. Does not update the parameters if the perturbation is greater than epsilon."""
+
+    def __init__(
+        self,
+        params: Union[Iterable[torch.Tensor], Iterable[Dict[str, Any]]],
+        lr: float = 2 / 255,
+        epsilon: float = 8 / 255,
+    ):
         defaults = dict(lr=lr, epsilon=epsilon)
         super(PGDOptimizer, self).__init__(params, defaults)
 
-    def step(self, closure=None):
-        # Does one step of PGD
+    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
+        """Performs a single optimization step.
+
+        Args:
+            closure (Optional[Callable[[], float]], optional): A closure that reevaluates the model and returns the loss. Defaults to None.
+
+        Returns:
+            Optional[float]: The loss value if the closure is provided.
+        """
         loss = None
         if closure is not None:
             loss = closure()
@@ -23,7 +38,7 @@ class PGDOptimizer(torch.optim.Optimizer):
                     group["perturbation"] = {}
                     group["perturbation"][pid] = 0
 
-                update = - p.grad.data.sign() * group["lr"]
+                update = -p.grad.data.sign() * group["lr"]
                 update = (
                     torch.clamp(
                         update + group["perturbation"][pid],

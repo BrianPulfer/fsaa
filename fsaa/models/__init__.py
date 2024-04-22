@@ -1,3 +1,5 @@
+from typing import Callable
+
 from torch.nn import Module
 from torchvision.transforms import Normalize
 
@@ -34,15 +36,16 @@ SUPPORTED_MODELS_ACTIVATIONS = (
 
 
 def get_model(model_name: str, *args, **kwargs) -> Module:
-    """
-    Returns the pre-trained model with the given name.
-    The model is wrapped with its corresponding pre-processing differentiable transform.
+    """Returns the model specified by the model_name.
 
     Args:
-        model_name (str): Name of the model.
+        model_name (str): Name of the model to load.
+
+    Raises:
+        ValueError: If the model_name is not supported.
 
     Returns:
-        Module: Pre-trained model with the given name.
+        Module: The model specified by the model_name.
     """
     if model_name not in SUPPORTED_MODELS:
         raise ValueError(
@@ -66,7 +69,15 @@ def get_model(model_name: str, *args, **kwargs) -> Module:
         return load_ijepa_model(model_name, *args, **kwargs)
 
 
-def get_default_transform(model_name):
+def get_default_transform(model_name: str) -> Callable:
+    """Returns the default transform for the model specified by the model_name.
+
+    Args:
+        model_name (str): Name of the model.
+
+    Returns:
+        Callable: The default transform for the model.
+    """
     if model_name in SUPPORTED_BEIT_MODELS:
         return Normalize(IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD)
     return Normalize(IMAGENET_MEAN, IMAGENET_STD)
