@@ -53,7 +53,8 @@ def name_to_model(model_name: str):
 
 
 def load_hf_model(model_name, *args, **kwargs):
-    return HFModelWrapper(model_name, *args, **kwargs)
+    model = name_to_model(model_name)
+    return HFModelWrapper(model, model_name=model_name, *args, **kwargs)
 
 
 class HFModelWrapper(Module):
@@ -64,60 +65,62 @@ class HFModelWrapper(Module):
         model_name (str): Name of the model to be used.
     """
 
-    def __init__(self, model_name, *args, **kwargs):
+    def __init__(
+        self, hf_model, model_name=None, output_key="last_hidden_state", *args, **kwargs
+    ):
         super(HFModelWrapper, self).__init__()
+        self.hf_model = hf_model
         self.model_name = model_name
-
-        if model_name not in SUPPORTED_HF_MODELS:
-            raise ValueError(
-                f"Model '{model_name}' is not supported. \
-                Pick one of {SUPPORTED_HF_MODELS}"
-            )
-
-        self.model = name_to_model(model_name)
+        self.output_key = output_key
 
     def forward(self, x):
         """Runs the given batch through the model to extract features."""
-        out = self.model(x)
-        hidden_state = out["last_hidden_state"]
+        out = self.hf_model(x)
+        output = out[self.output_key]
 
         # Sorting tokens in hidden state for MAE models
-        if self.model_name in SUPPORTED_MAE_MODELS:
-            d = hidden_state.shape[-1]
+        if (
+            self.model_name in SUPPORTED_MAE_MODELS
+            and self.output_key == "last_hidden_state"
+        ):
+            d = output.shape[-1]
             ids = out["ids_restore"]
             ids = ids.unsqueeze(-1).expand(-1, -1, d)
 
-            hidden_state = torch.cat(
+            output = torch.cat(
                 [
-                    hidden_state[:, 0].unsqueeze(1),
-                    torch.gather(hidden_state[:, 1:], dim=1, index=ids),
+                    output[:, 0].unsqueeze(1),
+                    torch.gather(output[:, 1:], dim=1, index=ids),
                 ],
                 dim=1,
             )
 
-        return hidden_state
+        return output
 
     def forward_activations(self, x, layer_idxs=None):
         """Runs the given batch through the model to extract features."""
         if layer_idxs is None:
             layer_idxs = list(range(self.model.config.num_hidden_layers))
 
-        out = self.model(x, output_hidden_states=True)
-        hidden_state = out["last_hidden_state"]
+        out = self.hf_model(x, output_hidden_states=True)
+        output = out[self.output_key]
         acts = torch.stack(out["hidden_states"], dim=1)
 
         # Sorting tokens in hidden state for MAE models
-        if self.model_name in SUPPORTED_MAE_MODELS:
-            d = hidden_state.shape[-1]
+        if (
+            self.model_name in SUPPORTED_MAE_MODELS
+            and self.output_key == "last_hidden_state"
+        ):
+            d = output.shape[-1]
             ids = out["ids_restore"]
             ids = ids.unsqueeze(-1).expand(-1, -1, d)
 
-            hidden_state = torch.cat(
+            output = torch.cat(
                 [
-                    hidden_state[:, 0].unsqueeze(1),
-                    torch.gather(hidden_state[:, 1:], dim=1, index=ids),
+                    output[:, 0].unsqueeze(1),
+                    torch.gather(output[:, 1:], dim=1, index=ids),
                 ],
                 dim=1,
             )
 
-        return hidden_state, acts
+        return output, acts
