@@ -100,7 +100,7 @@ class HFModelWrapper(Module):
     def forward_activations(self, x, layer_idxs=None):
         """Runs the given batch through the model to extract features."""
         if layer_idxs is None:
-            layer_idxs = list(range(self.model.config.num_hidden_layers))
+            layer_idxs = list(range(self.hf_model.config.num_hidden_layers))
 
         out = self.hf_model(x, output_hidden_states=True)
         output = out[self.output_key]
