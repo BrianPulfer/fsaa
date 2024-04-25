@@ -152,7 +152,7 @@ def attack(
         optim.step()
 
         if scheduler is not None:
-            scheduler.step()
+            scheduler.step(loss)
 
         # Keeping image in bounds
         images_adv.data = torch.clamp(images_adv.data, 0, 1)
