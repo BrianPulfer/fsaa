@@ -34,6 +34,11 @@ SUPPORTED_MODELS_ACTIVATIONS = (
     + SUPPORTED_IJEPA_MODELS
 )
 
+SUPPORTED_MODELS_ATTENTIONS = (
+    SUPPORTED_CAE_MODELS
+    + SUPPORTED_HF_MODELS
+)
+
 
 def get_model(model_name: str, *args, **kwargs) -> Module:
     """Returns the model specified by the model_name.

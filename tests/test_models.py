@@ -8,7 +8,8 @@ from torchvision.transforms import ToTensor
 from transformers import AutoImageProcessor
 
 from fsaa.models import (SUPPORTED_HF_MODELS, SUPPORTED_MODELS,
-                         SUPPORTED_MODELS_ACTIVATIONS, get_default_transform,
+                         SUPPORTED_MODELS_ACTIVATIONS,
+                         SUPPORTED_MODELS_ATTENTIONS, get_default_transform,
                          get_model)
 
 
@@ -82,3 +83,15 @@ def test_activations(image_device):
         out2, acts = model.forward_activations(tensor)
         assert torch.allclose(out1, out2, atol=1e-4)
         assert acts.ndim == 4  # (batch, layers, seq_len, hidden_size)
+
+
+def test_attn(image_device):
+    image, device = image_device
+    tensor = ToTensor()(image).unsqueeze(0).to(device)
+
+    for name in SUPPORTED_MODELS_ATTENTIONS:
+        model = get_model(name).to(device).eval()
+        out1 = model(tensor)
+        out2, attn = model.forward_attn(tensor)
+        assert torch.allclose(out1, out2, atol=1e-4)
+        assert attn.ndim == 5  # (batch, layers, heads, seq_len, seq_len)
