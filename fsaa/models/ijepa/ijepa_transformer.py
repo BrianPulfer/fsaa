@@ -206,7 +206,7 @@ class Attention(nn.Module):
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
 
-    def forward(self, x):
+    def forward(self, x, return_attn=False):
         B, N, C = x.shape
         qkv = (
             self.qkv(x)
@@ -217,12 +217,17 @@ class Attention(nn.Module):
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
+        if return_attn:
+            attn_post_softmax = attn.clone().detach()
         attn = self.attn_drop(attn)
 
         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
-        return x, attn
+
+        if return_attn:
+            return x, attn_post_softmax
+        return x
 
 
 class Block(nn.Module):
@@ -260,12 +265,15 @@ class Block(nn.Module):
             drop=drop,
         )
 
-    def forward(self, x, return_attention=False):
-        y, attn = self.attn(self.norm1(x))
-        if return_attention:
-            return attn
+    def forward(self, x, return_attn=False):
+        y = self.attn(self.norm1(x), return_attn=return_attn)
+        if return_attn:
+            y, attn = y
         x = x + self.drop_path(y)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        if return_attn:
+            return x, attn
         return x
 
 
@@ -607,6 +615,37 @@ class VisionTransformer(nn.Module):
             out = self.norm(out)
 
         return out, torch.stack(acts, dim=1)
+
+    def forward_attn(self, x, masks=None, layer_idxs=None):
+        if masks is not None:
+            if not isinstance(masks, list):
+                masks = [masks]
+
+        if layer_idxs is None:
+            layer_idxs = [i for i in range(len(self.blocks))]
+
+        # Patch embedding
+        x = self.patch_embed(x)
+
+        pos_embed = self.interpolate_pos_encoding(x, self.pos_embed)
+        x = x + pos_embed
+
+        if masks is not None:
+            x = apply_masks(x, masks)
+
+        attns = []
+        for i, blk in enumerate(self.blocks):
+            x, attn = blk(x, return_attn=True)
+
+            if i in layer_idxs:
+                attns.append(attn)
+
+        out = x
+
+        if self.norm is not None:
+            out = self.norm(out)
+
+        return out, torch.stack(attns, dim=1)
 
     def interpolate_pos_encoding(self, x, pos_embed):
         npatch = x.shape[1] - 1
