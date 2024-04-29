@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 from torch.nn import Module
 from transformers import AutoModel, logging
@@ -73,8 +75,18 @@ class HFModelWrapper(Module):
         self.model_name = model_name
         self.output_key = output_key
 
+    def _sort_mae_output(self, output, ids_restore):
+        ids = ids_restore.unsqueeze(-1).expand(-1, -1, output.shape[-1])
+        return torch.cat(
+            [
+                output[:, 0].unsqueeze(1),
+                torch.gather(output[:, 1:], dim=1, index=ids),
+            ],
+            dim=1,
+        )
+
     def forward(self, x):
-        """Runs the given batch through the model to extract features."""
+        """Runs the given batch through the model to output"""
         out = self.hf_model(x)
         output = out[self.output_key]
 
@@ -83,22 +95,20 @@ class HFModelWrapper(Module):
             self.model_name in SUPPORTED_MAE_MODELS
             and self.output_key == "last_hidden_state"
         ):
-            d = output.shape[-1]
-            ids = out["ids_restore"]
-            ids = ids.unsqueeze(-1).expand(-1, -1, d)
-
-            output = torch.cat(
-                [
-                    output[:, 0].unsqueeze(1),
-                    torch.gather(output[:, 1:], dim=1, index=ids),
-                ],
-                dim=1,
-            )
+            output = self._sort_mae_output(output, out["ids_restore"])
 
         return output
 
-    def forward_activations(self, x, layer_idxs=None):
-        """Runs the given batch through the model to extract features."""
+    def forward_activations(self, x: torch.Tensor, layer_idxs: List[int] = None):
+        """Runs the given batch through the model to extract features.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, h, w)
+            layer_idxs (List[int], optional): List of layers used to extract activations. If None, uses all layers. Defaults to None.
+
+        Returns:
+            _type_: Tuple[torch.Tensor, torch.Tensor]: Tuple containing the output tensor and the activations tensor. The output tensor has shape (B, T, D), where B is the batch size, T is the number of tokens and D is the hidden dimensionality. The activations tensor has shape (B, L, T, D), where L is the number of layers.
+        """
         if layer_idxs is None:
             layer_idxs = list(range(self.hf_model.config.num_hidden_layers))
 
@@ -111,16 +121,34 @@ class HFModelWrapper(Module):
             self.model_name in SUPPORTED_MAE_MODELS
             and self.output_key == "last_hidden_state"
         ):
-            d = output.shape[-1]
-            ids = out["ids_restore"]
-            ids = ids.unsqueeze(-1).expand(-1, -1, d)
-
-            output = torch.cat(
-                [
-                    output[:, 0].unsqueeze(1),
-                    torch.gather(output[:, 1:], dim=1, index=ids),
-                ],
-                dim=1,
-            )
+            output = self._sort_mae_output(output, out["ids_restore"])
 
         return output, acts
+
+    def forward_attn(
+        self, x: torch.Tensor, layer_idxs: List[int] = None
+    ) -> torch.Tensor:
+        """Runs the given batch through the model to extract attention maps.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, h, w)
+            layer_idxs (List[int], optional): List of layers used to extract attention maps. If None, uses all layers. Defaults to None.
+
+        Returns:
+            torch.Tensor: Attention maps. The shape is (B, L, H, P, P), where B is the batch size, L is the number of layers, H the number of attention heads and P is the number of patches.
+        """
+
+        if layer_idxs is None:
+            layer_idxs = list(range(self.hf_model.config.num_hidden_layers))
+
+        out = self.hf_model(x, output_attentions=True)
+        output = out[self.output_key]
+        attns = torch.stack(out["attentions"], dim=1)
+
+        if (
+            self.model_name in SUPPORTED_MAE_MODELS
+            and self.output_key == "last_hidden_state"
+        ):
+            output = self._sort_mae_output(output, out["ids_restore"])
+
+        return output, attns

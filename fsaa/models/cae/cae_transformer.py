@@ -220,7 +220,7 @@ class Attention(nn.Module):
         self.proj = nn.Linear(all_head_dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
 
-    def forward(self, x, rel_pos_bias=None):
+    def forward(self, x, rel_pos_bias=None, return_attn=False):
         B, N, C = x.shape
         qkv_bias = None
         if self.q_bias is not None:
@@ -257,11 +257,16 @@ class Attention(nn.Module):
             attn = attn + rel_pos_bias
 
         attn = attn.softmax(dim=-1)
+        if return_attn:
+            attn_post_softmax = attn.clone().detach()
         attn = self.attn_drop(attn)
 
         x = (attn @ v).transpose(1, 2).reshape(B, N, -1)
         x = self.proj(x)
         x = self.proj_drop(x)
+
+        if return_attn:
+            return x, attn_post_softmax
         return x
 
 
@@ -391,17 +396,25 @@ class Block(nn.Module):
         else:
             self.gamma_1, self.gamma_2 = None, None
 
-    def forward(self, x, rel_pos_bias=None):
+    def forward(self, x, rel_pos_bias=None, return_attn=False):
+        if return_attn:
+            attn_out, attn = self.attn(self.norm1(
+                x), rel_pos_bias=rel_pos_bias, return_attn=return_attn)
+        else:
+            attn_out = self.attn(self.norm1(x), rel_pos_bias=rel_pos_bias)
+
         if self.gamma_1 is None:
-            x = x + self.drop_path(self.attn(self.norm1(x),
-                                   rel_pos_bias=rel_pos_bias))
+            x = x + self.drop_path(attn_out)
             x = x + self.drop_path(self.mlp(self.norm2(x)))
         else:
+
             x = x + self.drop_path(
-                self.gamma_1 * self.attn(self.norm1(x),
-                                         rel_pos_bias=rel_pos_bias)
+                self.gamma_1 * attn_out
             )
             x = x + self.drop_path(self.gamma_2 * self.mlp(self.norm2(x)))
+
+        if return_attn:
+            return x, attn
         return x
 
 
@@ -873,6 +886,67 @@ class VisionTransformer(nn.Module):
                 return self.fc_norm(t.mean(1)), acts
             else:
                 return x, acts
+
+    def forward_attn(self, x, is_train=True, layer_idxs=None):
+        if layer_idxs is None:
+            layer_idxs = list(range(len(self.blocks)))
+
+        x = self.patch_embed(x)
+        batch_size, seq_len, _ = x.size()
+
+        # stole cls_tokens impl from Phil Wang, thanks
+        cls_tokens = self.cls_token.expand(batch_size, -1, -1)
+        x = torch.cat((cls_tokens, x), dim=1)
+        if self.pos_embed is not None:
+            if self.use_abs_pos_emb:
+                x = (
+                    x
+                    + self.pos_embed.expand(batch_size, -1, -1)
+                    .type_as(x)
+                    .to(x.device)
+                    .clone()
+                    .detach()
+                )
+            else:
+                x = (
+                    x
+                    + self.pos_embed.expand(batch_size, -1, -1)
+                    .type_as(x)
+                    .to(x.device)
+                    .clone()
+                    .detach()
+                )
+
+        x = self.pos_drop(x)
+
+        rel_pos_bias = self.rel_pos_bias() if self.rel_pos_bias is not None else None
+
+        attns = []
+        for i, blk in enumerate(self.blocks):
+            x, attn = blk(x, rel_pos_bias=rel_pos_bias, return_attn=True)
+            if i in layer_idxs:
+                attns.append(attn)
+
+        attns = torch.stack(attns, dim=1)
+        x = self.norm(x)
+
+        # linear probing or attentive probing
+        if self.lin_probe:
+            if self.linear_type == "standard":
+                return x[:, 0], attns
+            else:
+                query_tokens = self.query_token.expand(batch_size, -1, -1)
+                for blk in self.attentive_blocks:
+                    query_tokens = blk(
+                        query_tokens, x, 0, 0, bool_masked_pos=None, rel_pos_bias=None
+                    )
+                return self.fc_norm(query_tokens[:, 0, :], is_train=is_train), attns
+        else:  # finetune
+            if self.fc_norm is not None:  # use mean pooling
+                t = x[:, 1:, :]
+                return self.fc_norm(t.mean(1)), attns
+            else:
+                return x, attns
 
 
 @register_model

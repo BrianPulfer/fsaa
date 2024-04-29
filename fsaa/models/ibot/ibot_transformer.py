@@ -124,7 +124,7 @@ class Attention(nn.Module):
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
 
-    def forward(self, x):
+    def forward(self, x, return_attn=False):
         B, N, C = x.shape
         qkv = self.qkv(x)
         qkv = qkv.reshape(B, N, 3, self.num_heads, C // self.num_heads)
@@ -133,12 +133,18 @@ class Attention(nn.Module):
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
+        if return_attn:
+            attn_post_softmax = attn.clone().detach()
         attn = self.attn_drop(attn)
 
         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
-        return x, attn
+
+        if return_attn:
+            return x, attn_post_softmax
+
+        return x
 
 
 class Block(nn.Module):
@@ -187,16 +193,22 @@ class Block(nn.Module):
         else:
             self.gamma_1, self.gamma_2 = None, None
 
-    def forward(self, x, return_attention=False):
-        y, attn = self.attn(self.norm1(x))
-        if return_attention:
-            return attn
+    def forward(self, x, return_attn=False):
+        y = self.attn(self.norm1(x), return_attn=return_attn)
+
+        if return_attn:
+            y, attn = y
+
         if self.gamma_1 is None:
             x = x + self.drop_path(y)
             x = x + self.drop_path(self.mlp(self.norm2(x)))
         else:
             x = x + self.drop_path(self.gamma_1 * y)
             x = x + self.drop_path(self.gamma_2 * self.mlp(self.norm2(x)))
+
+        if return_attn:
+            return x, attn
+
         return x
 
 
@@ -408,6 +420,38 @@ class VisionTransformer(nn.Module):
         if return_all_tokens:
             return x, acts
         return x[:, 0], acts
+
+    def forward_attn(
+        self, x, return_all_tokens=True, mask=None, layer_idxs=None
+    ):
+        if layer_idxs is None:
+            layer_idxs = list(range(len(self.blocks)))
+
+        # mim
+        if self.masked_im_modeling:
+            # assert mask is not None
+            x = self.prepare_tokens(x, mask=mask)
+        else:
+            x = self.prepare_tokens(x)
+
+        attns = []
+        for i, blk in enumerate(self.blocks):
+            x, attn = blk(x, return_attn=True)
+
+            if i in layer_idxs:
+                attns.append(attn)
+
+        attns = torch.stack(attns, dim=1)
+        x = self.norm(x)
+        if self.fc_norm is not None:
+            x[:, 0] = self.fc_norm(x[:, 1:, :].mean(1))
+
+        return_all_tokens = (
+            self.return_all_tokens if return_all_tokens is None else return_all_tokens
+        )
+        if return_all_tokens:
+            return x, attns
+        return x[:, 0], attns
 
     def get_last_selfattention(self, x):
         x = self.prepare_tokens(x)
