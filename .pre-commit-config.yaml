@@ -13,3 +13,7 @@ repos:
     hooks:
     -   id: flake8
         entry: flake8 --ignore=E501,F403,F405,W503,W504
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.2
+    hooks:
+    -   id: ruff
