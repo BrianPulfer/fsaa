@@ -1,1 +1,1 @@
-from .sv import get_singular_values  # noqa F401
+from .sv import get_eigenvalues, get_singular_values  # noqa F401
