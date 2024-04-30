@@ -453,6 +453,38 @@ class VisionTransformer(nn.Module):
             return x, attns
         return x[:, 0], attns
 
+    def forward_all(self, x, return_all_tokens=True, mask=None, layer_idxs=None):
+        if layer_idxs is None:
+            layer_idxs = list(range(len(self.blocks)))
+
+        # mim
+        if self.masked_im_modeling:
+            # assert mask is not None
+            x = self.prepare_tokens(x, mask=mask)
+        else:
+            x = self.prepare_tokens(x)
+
+        acts, attns = [x.clone().detach()], []
+        for i, blk in enumerate(self.blocks):
+            x, attn = blk(x, return_attn=True)
+
+            if i in layer_idxs:
+                acts.append(x.clone().detach())
+                attns.append(attn)
+
+        acts = torch.stack(acts, dim=1)
+        attns = torch.stack(attns, dim=1)
+        x = self.norm(x)
+        if self.fc_norm is not None:
+            x[:, 0] = self.fc_norm(x[:, 1:, :].mean(1))
+
+        return_all_tokens = (
+            self.return_all_tokens if return_all_tokens is None else return_all_tokens
+        )
+        if return_all_tokens:
+            return x, acts, attns
+        return x[:, 0], acts, attns
+
     def get_last_selfattention(self, x):
         x = self.prepare_tokens(x)
         for i, blk in enumerate(self.blocks):
