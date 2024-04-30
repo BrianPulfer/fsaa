@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import torch
 from torch.nn import Module
@@ -99,6 +99,7 @@ class HFModelWrapper(Module):
 
         return output
 
+    # TODO: layer_idxs is not used
     def forward_activations(self, x: torch.Tensor, layer_idxs: List[int] = None):
         """Runs the given batch through the model to extract features.
 
@@ -125,9 +126,10 @@ class HFModelWrapper(Module):
 
         return output, acts
 
+    # TODO: layer_idxs is not used
     def forward_attn(
         self, x: torch.Tensor, layer_idxs: List[int] = None
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor]:
         """Runs the given batch through the model to extract attention maps.
 
         Args:
@@ -135,7 +137,7 @@ class HFModelWrapper(Module):
             layer_idxs (List[int], optional): List of layers used to extract attention maps. If None, uses all layers. Defaults to None.
 
         Returns:
-            torch.Tensor: Attention maps. The shape is (B, L, H, P, P), where B is the batch size, L is the number of layers, H the number of attention heads and P is the number of patches.
+            Tuple[torch.Tensor]: Model output and Attention maps. The attention maps have shape (B, L, H, P, P), where B is the batch size, L is the number of layers, H the number of attention heads and P is the number of patches.
         """
 
         if layer_idxs is None:
@@ -152,3 +154,37 @@ class HFModelWrapper(Module):
             output = self._sort_mae_output(output, out["ids_restore"])
 
         return output, attns
+
+    # TODO: layer_idxs is not used
+    def forward_all(
+        self, x: torch.Tensor, layer_idxs: List[int] = None
+    ) -> Tuple[torch.Tensor]:
+        """Runs the given batch through the model to extract output, activations, attention maps and gradients. The gradients are taken with respect to the provided loss function.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, h, w)
+            transform (Callable): Transform function to be applied to the input tensor.
+            layer_idxs (List[int], optional): List of layers used to extract activations and attention maps. If None, uses all layers. Defaults to None.
+
+        Returns:
+            Tuple[torch.Tensor]: Model output, activations, attention maps and gradients. The activations tensor has shape (B, L, T, D), where B is the batch size, L is the number of layers, T is the number of tokens and D is the hidden dimensionality. The attention maps have shape (B, L, H, P, P), where B is the batch size, L is the number of layers, H the number of attention heads and P is the number of patches. The gradients tensor has shape (B, C, H, W).
+        """
+
+        if layer_idxs is None:
+            layer_idxs = list(range(self.hf_model.config.num_hidden_layers))
+
+        x.requires_grad_(True)
+
+        out = self.hf_model(x, output_attentions=True,
+                            output_hidden_states=True)
+        output = out[self.output_key]
+        acts = torch.stack(out["hidden_states"], dim=1)
+        attns = torch.stack(out["attentions"], dim=1)
+
+        if (
+            self.model_name in SUPPORTED_MAE_MODELS
+            and self.output_key == "last_hidden_state"
+        ):
+            output = self._sort_mae_output(output, out["ids_restore"])
+
+        return output, acts, attns
