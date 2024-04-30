@@ -95,3 +95,16 @@ def test_attn(image_device):
         out2, attn = model.forward_attn(tensor)
         assert torch.allclose(out1, out2, atol=1e-4)
         assert attn.ndim == 5  # (batch, layers, heads, seq_len, seq_len)
+
+
+def test_all(image_device):
+    image, device = image_device
+    tensor = ToTensor()(image).unsqueeze(0).to(device)
+
+    for name in set(SUPPORTED_MODELS_ACTIVATIONS) & set(SUPPORTED_MODELS_ATTENTIONS):
+        model = get_model(name).to(device).eval()
+        out1 = model(tensor)
+        out2, acts, attn = model.forward_all(tensor)
+        assert torch.allclose(out1, out2, atol=1e-4)
+        assert acts.ndim == 4
+        assert attn.ndim == 5
