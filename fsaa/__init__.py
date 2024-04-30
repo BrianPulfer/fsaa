@@ -127,7 +127,7 @@ def attack(
                 target = target.flatten(start_dim=1)
 
     # Attack loop
-    pbar = tqdm(range(steps)) if pbar else range(steps)
+    pbar = tqdm(range(steps), leave=False) if pbar else range(steps)
     best_losses = torch.ones(images.size(0), device=device) * float("inf")
     best_images_adv = images_adv.clone().detach()
     for _ in pbar:
