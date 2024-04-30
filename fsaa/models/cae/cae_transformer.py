@@ -948,6 +948,70 @@ class VisionTransformer(nn.Module):
             else:
                 return x, attns
 
+    def forward_all(self, x, is_train=True, layer_idxs=None):
+        if layer_idxs is None:
+            layer_idxs = list(range(len(self.blocks)))
+
+        x = self.patch_embed(x)
+        batch_size, seq_len, _ = x.size()
+
+        # stole cls_tokens impl from Phil Wang, thanks
+        cls_tokens = self.cls_token.expand(batch_size, -1, -1)
+        x = torch.cat((cls_tokens, x), dim=1)
+        if self.pos_embed is not None:
+            if self.use_abs_pos_emb:
+                x = (
+                    x
+                    + self.pos_embed.expand(batch_size, -1, -1)
+                    .type_as(x)
+                    .to(x.device)
+                    .clone()
+                    .detach()
+                )
+            else:
+                x = (
+                    x
+                    + self.pos_embed.expand(batch_size, -1, -1)
+                    .type_as(x)
+                    .to(x.device)
+                    .clone()
+                    .detach()
+                )
+
+        x = self.pos_drop(x)
+
+        rel_pos_bias = self.rel_pos_bias() if self.rel_pos_bias is not None else None
+
+        attns = []
+        acts = [x.clone().detach()]
+        for i, blk in enumerate(self.blocks):
+            x, attn = blk(x, rel_pos_bias=rel_pos_bias, return_attn=True)
+            if i in layer_idxs:
+                acts.append(x.clone().detach())
+                attns.append(attn)
+
+        attns = torch.stack(attns, dim=1)
+        acts = torch.stack(acts, dim=1)
+        x = self.norm(x)
+
+        # linear probing or attentive probing
+        if self.lin_probe:
+            if self.linear_type == "standard":
+                return x[:, 0], acts, attns
+            else:
+                query_tokens = self.query_token.expand(batch_size, -1, -1)
+                for blk in self.attentive_blocks:
+                    query_tokens = blk(
+                        query_tokens, x, 0, 0, bool_masked_pos=None, rel_pos_bias=None
+                    )
+                return self.fc_norm(query_tokens[:, 0, :], is_train=is_train), acts, attns
+        else:  # finetune
+            if self.fc_norm is not None:  # use mean pooling
+                t = x[:, 1:, :]
+                return self.fc_norm(t.mean(1)), acts, attns
+            else:
+                return x, acts, attns
+
 
 @register_model
 def cae_small_patch16_224(pretrained=False, **kwargs):
