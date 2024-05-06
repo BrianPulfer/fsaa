@@ -593,7 +593,7 @@ class VisionTransformer(nn.Module):
         use_abs_pos_emb=True,
         use_rel_pos_bias=False,
         use_shared_rel_pos_bias=False,
-        use_mean_pooling=True,
+        use_mean_pooling=False,
         init_scale=0.001,
         lin_probe=False,
         linear_type="standard",

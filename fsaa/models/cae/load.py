@@ -3,13 +3,15 @@ Official CAE model from https://arxiv.org/abs/2202.03026.
 """
 
 import os
-from functools import partial
 
 import gdown
 import torch
 import torch.nn as nn
 
 from fsaa.models.cae.cae_transformer import VisionTransformer
+
+# from functools import partial
+
 
 NAME_TO_URL = {
     "cae_large_1600ep": "https://drive.google.com/file/d/1jSsB-eKCIWEla7p0c2osoifwV0Cq0U8i/view?usp=sharing",
@@ -28,7 +30,7 @@ def name_to_model(name: str):
             num_heads=12,
             mlp_ratio=4,
             qkv_bias=True,
-            norm_layer=partial(nn.LayerNorm, eps=1e-6),
+            # norm_layer=partial(nn.LayerNorm, eps=1e-6),
             init_values=0.1,
         )
     if "large" in name:
@@ -39,7 +41,7 @@ def name_to_model(name: str):
             num_heads=16,
             mlp_ratio=4,
             qkv_bias=True,
-            norm_layer=partial(nn.LayerNorm, eps=1e-6),
+            # norm_layer=partial(nn.LayerNorm, eps=1e-6),
             init_values=0.1,
         )
     return model

@@ -486,7 +486,7 @@ class VisionTransformer(nn.Module):
         drop_rate=0.0,
         attn_drop_rate=0.0,
         drop_path_rate=0.0,
-        norm_layer=nn.LayerNorm,
+        norm_layer=None,
         init_std=0.02,
         **kwargs,
     ):
@@ -532,7 +532,7 @@ class VisionTransformer(nn.Module):
                 for i in range(depth)
             ]
         )
-        self.norm = norm_layer(embed_dim)
+        self.norm = norm_layer(embed_dim) if norm_layer is not None else None
         # ------
         self.init_std = init_std
         self.apply(self._init_weights)
