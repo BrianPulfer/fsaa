@@ -104,7 +104,7 @@ def attack(
     # Initializing adversarial images
     images = images.to(device)
     images_adv = (
-        (images + torch.randn_like(images) * initial_noise_scale)
+        (images)
         .clamp(0, 1)
         .to(device)
         .clone()
