@@ -54,7 +54,6 @@ def attack(
     feature_loss: nn.Module = torch.nn.CosineSimilarity(dim=-1),
     ilw: float = 0.0,
     flw: float = 1.0,
-    initial_noise_scale: float = 2 / 255,
     max_img_mse: float = float("inf"),
     do_flatten_features: bool = False,
     device: torch.device = None,
