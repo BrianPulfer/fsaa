@@ -99,7 +99,6 @@ class HFModelWrapper(Module):
 
         return output
 
-    # TODO: layer_idxs is not used
     def forward_activations(self, x: torch.Tensor, layer_idxs: List[int] = None):
         """Runs the given batch through the model to extract features.
 
@@ -110,12 +109,13 @@ class HFModelWrapper(Module):
         Returns:
             _type_: Tuple[torch.Tensor, torch.Tensor]: Tuple containing the output tensor and the activations tensor. The output tensor has shape (B, T, D), where B is the batch size, T is the number of tokens and D is the hidden dimensionality. The activations tensor has shape (B, L, T, D), where L is the number of layers.
         """
-        if layer_idxs is None:
-            layer_idxs = list(range(self.hf_model.config.num_hidden_layers))
-
         out = self.hf_model(x, output_hidden_states=True)
         output = out[self.output_key]
-        acts = torch.stack(out["hidden_states"], dim=1)
+        acts = torch.stack(
+            [out["hidden_states"][i] for i in layer_idxs]
+            if layer_idxs is not None else out['hidden_states'],
+            dim=1
+        )
 
         # Sorting tokens in hidden state for MAE models
         if (
@@ -126,7 +126,6 @@ class HFModelWrapper(Module):
 
         return output, acts
 
-    # TODO: layer_idxs is not used
     def forward_attn(
         self, x: torch.Tensor, layer_idxs: List[int] = None
     ) -> Tuple[torch.Tensor]:
@@ -139,13 +138,13 @@ class HFModelWrapper(Module):
         Returns:
             Tuple[torch.Tensor]: Model output and Attention maps. The attention maps have shape (B, L, H, P, P), where B is the batch size, L is the number of layers, H the number of attention heads and P is the number of patches.
         """
-
-        if layer_idxs is None:
-            layer_idxs = list(range(self.hf_model.config.num_hidden_layers))
-
         out = self.hf_model(x, output_attentions=True)
         output = out[self.output_key]
-        attns = torch.stack(out["attentions"], dim=1)
+        attns = torch.stack(
+            [out['attentions'][i] for i in layer_idxs]
+            if layer_idxs is not None else out["attentions"],
+            dim=1
+        )
 
         if (
             self.model_name in SUPPORTED_MAE_MODELS
@@ -155,7 +154,6 @@ class HFModelWrapper(Module):
 
         return output, attns
 
-    # TODO: layer_idxs is not used
     def forward_all(
         self, x: torch.Tensor, layer_idxs: List[int] = None
     ) -> Tuple[torch.Tensor]:
@@ -169,17 +167,19 @@ class HFModelWrapper(Module):
         Returns:
             Tuple[torch.Tensor]: Model output, activations, attention maps and gradients. The activations tensor has shape (B, L, T, D), where B is the batch size, L is the number of layers, T is the number of tokens and D is the hidden dimensionality. The attention maps have shape (B, L, H, P, P), where B is the batch size, L is the number of layers, H the number of attention heads and P is the number of patches. The gradients tensor has shape (B, C, H, W).
         """
-
-        if layer_idxs is None:
-            layer_idxs = list(range(self.hf_model.config.num_hidden_layers))
-
         x.requires_grad_(True)
-
         out = self.hf_model(x, output_attentions=True,
                             output_hidden_states=True)
         output = out[self.output_key]
-        acts = torch.stack(out["hidden_states"], dim=1)
-        attns = torch.stack(out["attentions"], dim=1)
+        acts = torch.stack(
+            [out['hidden_states'][i] for i in layer_idxs]
+            if layer_idxs is not None else out["hidden_states"],
+            dim=1)
+        attns = torch.stack(
+            [out['attentions'][i] for i in layer_idxs]
+            if layer_idxs is not None else out["attentions"],
+            dim=1
+        )
 
         if (
             self.model_name in SUPPORTED_MAE_MODELS
