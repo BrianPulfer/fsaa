@@ -54,6 +54,7 @@ def attack(
     feature_loss: nn.Module = torch.nn.CosineSimilarity(dim=-1),
     ilw: float = 0.0,
     flw: float = 1.0,
+    initial_noise_scale: float = None,
     max_img_mse: float = float("inf"),
     do_flatten_features: bool = False,
     device: torch.device = None,
@@ -103,7 +104,8 @@ def attack(
     # Initializing adversarial images
     images = images.to(device)
     images_adv = (
-        (images)
+        (images + torch.randn_like(images) *
+         initial_noise_scale if initial_noise_scale is not None else images)
         .clamp(0, 1)
         .to(device)
         .clone()
