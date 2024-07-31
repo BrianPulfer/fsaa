@@ -131,10 +131,10 @@ def attack(
                 target = target.flatten(start_dim=1)
 
     # Attack loop
-    pbar = tqdm(range(steps), leave=False) if pbar else range(steps)
+    bar = tqdm(range(steps), leave=False) if pbar else range(steps)
     best_losses = torch.ones(images.size(0), device=device) * float("inf")
     best_images_adv = images_adv.clone().detach()
-    for _ in pbar:
+    for step in bar:
         # Obtaining predictions
         pred = model(transform(images_adv))
         if do_flatten_features:
@@ -179,9 +179,16 @@ def attack(
         best_losses[update_mask] = losses[update_mask]
         best_images_adv[update_mask] = images_adv[update_mask].clone().detach()
 
+        # Updating progress bar
+        if pbar:
+            bar.set_description(
+                f"Step {step+1}/{steps} | Loss: {loss.item():.4f} (Best: {best_losses.mean().item():.4f}) | MSE: {mse.mean().item():.6f}"
+            )
+
     # Converting to valid images
-    best_images_adv = torch.stack([to_valid_image(img)
-                                  for img in best_images_adv]).to(device)
+    best_images_adv = torch.stack([to_valid_image(img) for img in best_images_adv]).to(
+        device
+    )
     return best_images_adv
 
 
