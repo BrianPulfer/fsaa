@@ -8,6 +8,9 @@ from tqdm.auto import tqdm
 
 from fsaa.optimizers.pgd import PGDOptimizer
 
+to_pil = ToPILImage()
+to_tensor = ToTensor()
+
 
 def to_valid_image(image: torch.Tensor) -> torch.Tensor:
     """Converts a torch tensor into a valid image tensor.
@@ -18,10 +21,7 @@ def to_valid_image(image: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: A valid image tensor in range [0, 1] that does not alter when converted to PIL image.
     """
-    to_pil = ToPILImage()
-    to_tensor = ToTensor()
-
-    image = torch.clamp(image, 0, 1).clone().detach().cpu()
+    image = torch.clamp(image, 0, 1).clone().detach()
     return to_tensor(to_pil(image))
 
 
@@ -104,8 +104,11 @@ def attack(
     # Initializing adversarial images
     images = images.to(device)
     images_adv = (
-        (images + torch.randn_like(images) *
-         initial_noise_scale if initial_noise_scale is not None else images)
+        (
+            images + torch.randn_like(images) * initial_noise_scale
+            if initial_noise_scale is not None
+            else images
+        )
         .clamp(0, 1)
         .to(device)
         .clone()
@@ -177,9 +180,8 @@ def attack(
         best_images_adv[update_mask] = images_adv[update_mask].clone().detach()
 
     # Converting to valid images
-    best_images_adv = torch.stack([to_valid_image(img) for img in best_images_adv]).to(
-        device
-    )
+    best_images_adv = torch.stack([to_valid_image(img)
+                                  for img in best_images_adv]).to(device)
     return best_images_adv
 
 
