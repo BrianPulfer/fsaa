@@ -11,7 +11,9 @@ class PGDOptimizer(torch.optim.Optimizer):
         params: Union[Iterable[torch.Tensor], Iterable[Dict[str, Any]]],
         lr: float = 2 / 255,
         epsilon: float = 8 / 255,
+        maximize: bool = False,
     ):
+        self.maximize = maximize
         defaults = dict(lr=lr, epsilon=epsilon)
         super(PGDOptimizer, self).__init__(params, defaults)
 
@@ -38,7 +40,8 @@ class PGDOptimizer(torch.optim.Optimizer):
                     group["perturbation"] = {}
                     group["perturbation"][pid] = 0
 
-                update = -p.grad.data.sign() * group["lr"]
+                update = (1 if self.maximize else -1) * \
+                    p.grad.data.sign() * group["lr"]
                 update = (
                     torch.clamp(
                         update + group["perturbation"][pid],
